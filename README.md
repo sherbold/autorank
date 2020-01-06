@@ -50,7 +50,7 @@ The following example shows the usage of `autorank`.
 ```python
 import numpy as np
 import pandas as pd
-from autorank import autorank
+from autorank.autorank import autorank
 
 np.random.seed(42)
 pd.set_option('display.max_columns', 7)
