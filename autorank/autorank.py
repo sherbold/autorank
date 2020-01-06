@@ -13,8 +13,6 @@ from statsmodels.stats.multicomp import MultiComparison
 from statsmodels.stats.anova import AnovaRM
 from collections import namedtuple
 
-__all__ = ['autorank']
-
 
 def _cohen_d(x, y):
     """

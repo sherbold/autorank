@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from autorank import *
+from autorank.autorank import *
 
 pd.set_option('display.max_columns', 20)
 
