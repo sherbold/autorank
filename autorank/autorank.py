@@ -275,7 +275,18 @@ def autorank(data, alpha=0.05, verbose=False):
     :param alpha: Significance level. We internally use correction to ensure that all results (incl. confidence
     intervals) together fulfill this confidence level.
     :param verbose: If true, details about the ranking are printed.
-    :return: TODO
+    :return: A named tuple with the following entries:
+       - rankdf: Ranked populations including statistics about the populations
+       - pvalue: p-value of the omnibus test for the difference in central tendency between the populations
+       - omnibus: String with omnibus test that is used for the test of a difference ein the central tendency.
+       - posthoc: String with the posthoc tests that was used. The posthoc test is performed even if the omnibus test is
+         not significant. The results should only be used if the p-value of the omnibus test indicates significance.
+       - cd: The critical distance of the Nemenyi posthoc test, if it was used. Otherwise None.
+       - all_normal: True if all populations are normal
+       - pvals_shapiro: p-values of the Shapiro-Wilk tests for normality (sorted by the order of the input columns)
+       - homoscedastic: True if populations are homoscedastic
+       - pval_homogeneity: p-value of the test for homogeneity.
+       - homogeneity_test: Test used for homogeneity.
     """
 
     # validate inputs
