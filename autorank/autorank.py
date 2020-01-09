@@ -236,7 +236,7 @@ def _create_result_df_skeleton(data, alpha, all_normal):
 
 RankResult = namedtuple('RankResult', (
     'rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc', 'all_normal', 'pvals_shapiro', 'homoscedastic', 'pval_homogeneity',
-    'homogeneity_test', 'alpha'))
+    'homogeneity_test', 'alpha', 'alpha_normality', 'num_samples'))
 
 
 def autorank(data, alpha=0.05, verbose=False):
@@ -353,7 +353,7 @@ def autorank(data, alpha=0.05, verbose=False):
             res = _rank_multiple_nonparametric(data, alpha, verbose, all_normal)
 
     return RankResult(res.rankdf, res.pvalue, res.cd, res.omnibus, res.posthoc, all_normal, pvals_shapiro, var_equal,
-                      pval_homogeneity, homogeneity_test, alpha)
+                      pval_homogeneity, homogeneity_test, alpha, alpha_normality, len(data))
 
 
 def plot_stats(result, allow_insignificant=False, ax=None, width=None):
@@ -401,3 +401,75 @@ def plot_stats(result, allow_insignificant=False, ax=None, width=None):
     elif result.posthoc == 'nemenyi':
         ax = cd_diagram(result, True, ax, width)
     return ax
+
+
+def create_report(res):
+    def create_population_string(populations):
+        if len(populations)==1:
+            popstr = " " + populations[0]
+        elif len(populations) == 2:
+            popstr = "s " + " and ".join(populations)
+        else:
+            popstr = "s " + ", ".join(populations[:-1]) + ", and " + populations[-1]
+        return popstr
+
+    print("The statistical analysis was conducted for %i populations with %i paired samples." % (len(res.rankdf),
+                                                                                                 res.num_samples))
+    if res.all_normal:
+        print("We failed to reject the null hypothesis that the population is normal for all populations (adjusted"
+              "alpha=%f) and, therefore, assume that all populations are normal." % res.alpha_normality)
+    else:
+        not_normal = []
+        normal = []
+        for i, pval in enumerate(res.pvals_shapiro):
+            if pval<res.alpha_normality:
+                not_normal.append(res.rankdf.index[i])
+            else:
+                normal.append(res.rankdf.index[i])
+        print("We rejected the null hypothesis that the population is normal for the population%s"
+              "(adjusted alpha=%f)." % (create_population_string(not_normal), res.alpha_normality))
+
+    if len(res.rankdf)==2:
+        print("No check for homogeneity was required because we only have two populations.")
+        if res.omnibus=='ttest':
+            if res.pvalue>=res.alpha:
+                print("We failed to reject the null hypothesis (alpha=%f) of the paired t-test that the mean values of "
+                      "the populations %s (M=%f, SD=%f) and %s (M=%f, SD=%f) are are equal and, therefore, "
+                      "assume that there is no statistically significant difference between the mean values of the "
+                      "populations." % (res.alpha,
+                                        res.rankdf.index[0], res.rankdf['mean'][0], res.rankdf['std'][0],
+                                        res.rankdf.index[1], res.rankdf['mean'][1], res.rankdf['std'][1]))
+            else:
+                print("We reject the null hypothesis (alpha=%f) of the paired t-test that the mean values of the "
+                      "populations %s (M=%f, SD=%f) and %s (M=%f, SD=%f) are "
+                      "equal and, therefore, assume that the mean value of %s is "
+                      "significantly larger than the mean value of %s with a %s effect size (d=%f)."
+                      % (res.alpha,
+                         res.rankdf.index[0], res.rankdf['mean'][0], res.rankdf['std'][0],
+                         res.rankdf.index[1], res.rankdf['mean'][1], res.rankdf['std'][1],
+                         res.rankdf.index[0], res.rankdf.index[1],
+                         res.rankdf.magnitude[1], res.rankdf.effect_size[1]))
+        elif res.omnibus=='wilcoxon':
+            if res.pvalue>=res.alpha:
+                print("We failed to reject the null hypothesis (alpha=%f) of Wilcoxon's signed rank test that "
+                      "population %s (MD=%f, MAD=%f) is not greater than population %s (MD=%f, MAD=%f) and, therefore, "
+                      "assume that there is no statistically significant difference between the medians of the "
+                      "populations." % (res.alpha,
+                                        res.rankdf.index[0], res.rankdf['median'][0], res.rankdf['mad'][0],
+                                        res.rankdf.index[1], res.rankdf['median'][1], res.rankdf['mad'][1]))
+            else:
+                print("We reject the null hypothesis (alpha=%f) of Wilcoxon's signed rank test that population "
+                      "%s (MD=%f, MAD=%f) is not greater than population %s (MD=%f, MAD=%f) and, therefore, assume " 
+                      "that the median of %s is "
+                      "significantly larger than the median value of %s with a %s effect size (delta=%f)."
+                      % (res.alpha,
+                         res.rankdf.index[0], res.rankdf['median'][0], res.rankdf['mad'][0],
+                         res.rankdf.index[1], res.rankdf['median'][1], res.rankdf['mad'][1],
+                         res.rankdf.index[0], res.rankdf.index[1],
+                         res.rankdf.magnitude[1], res.rankdf.effect_size[1]))
+            pass
+        else:
+            raise ValueError('Unknown type of omnibus test for difference in centrality: %s' % res.omnibus)
+    else:
+        print("Texts for multiple populations not yet implemented.")
+

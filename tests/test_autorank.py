@@ -36,6 +36,7 @@ class TestAutorank(unittest.TestCase):
         print(res)
         plot_stats(res)
         plt.draw()
+        create_report(res)
 
     def test_autorank_nonnormal_homoscedactic_two(self):
         std = 0.3
@@ -49,6 +50,7 @@ class TestAutorank(unittest.TestCase):
         self.assertEqual(res.omnibus, 'wilcoxon')
         print(res)
         plot_stats(res)
+        create_report(res)
 
     def test_autorank_normal_homsocedactic(self):
         std = 0.2
@@ -64,6 +66,7 @@ class TestAutorank(unittest.TestCase):
         print(res)
         plot_stats(res)
         plt.draw()
+        create_report(res)
 
     def test_autorank_normal_heteroscedactic(self):
         stds = [0.05, 0.1, 0.5, 0.1, 0.05, 0.05]
@@ -79,6 +82,7 @@ class TestAutorank(unittest.TestCase):
         print(res)
         plot_stats(res)
         plt.draw()
+        create_report(res)
 
     def test_autorank_nonnormal_homoscedactic(self):
         std = 0.3
@@ -94,6 +98,7 @@ class TestAutorank(unittest.TestCase):
         print(res)
         plot_stats(res)
         plt.draw()
+        create_report(res)
 
     def test_autorank_nonnormal_heteroscedactic(self):
         stds = [0.1, 0.1, 0.5, 0.1, 0.05, 0.05]
@@ -109,3 +114,4 @@ class TestAutorank(unittest.TestCase):
         print(res)
         plot_stats(res)
         plt.draw()
+        create_report(res)
