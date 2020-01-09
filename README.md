@@ -44,6 +44,12 @@ For the statistical tests, there are four variants:
 - If there are more than two populations and at least one populations is not normal or the populations are
   heteroscedastic, we use Friedman's test with the Nemenyi post-hoc test.
   
+We use the paired t-test, the Wilcoxon signed rank test, and the Friedman test from [scipy](https://www.scipy.org/). The
+repeated measures ANOVA and Tukey's HSD test (including the calculation of the confidence intervals) are used from
+[statsmodels](statsmodels). We use own implementations for the calculation of critical distance of the Nemenyi test,
+the calculation of the effect sizes, and the calculation of the confidence intervals (with the exception of Tukey's
+HSD).  
+  
 ## Usage Example
 
 The following example shows the usage of `autorank`.
