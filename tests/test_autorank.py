@@ -18,6 +18,11 @@ class TestAutorank(unittest.TestCase):
     def tearDown(self) -> None:
         print('-------------------------------')
 
+    # Uncomment to view created plots
+#    @classmethod
+#    def tearDownClass(cls):
+#        plt.show()
+
     def test_autorank_normal_homoscedactic_two(self):
         std = 0.15
         means = [0.3, 0.7]
@@ -29,6 +34,8 @@ class TestAutorank(unittest.TestCase):
         self.assertTrue(res.homoscedastic)
         self.assertEqual(res.omnibus, 'ttest')
         print(res)
+        plot_stats(res)
+        plt.draw()
 
     def test_autorank_nonnormal_homoscedactic_two(self):
         std = 0.3
@@ -41,8 +48,9 @@ class TestAutorank(unittest.TestCase):
         self.assertTrue(res.homoscedastic)
         self.assertEqual(res.omnibus, 'wilcoxon')
         print(res)
+        plot_stats(res)
 
-    def test_autorank_normal_homoscedactic(self):
+    def test_autorank_normal_homsocedactic(self):
         std = 0.2
         means = [0.2, 0.3, 0.5, 0.55, 0.6, 0.9]
         data = pd.DataFrame()
@@ -54,6 +62,8 @@ class TestAutorank(unittest.TestCase):
         self.assertEqual(res.omnibus, 'anova')
         self.assertEqual(res.posthoc, 'tukeyhsd')
         print(res)
+        plot_stats(res)
+        plt.draw()
 
     def test_autorank_normal_heteroscedactic(self):
         stds = [0.05, 0.1, 0.5, 0.1, 0.05, 0.05]
@@ -67,10 +77,12 @@ class TestAutorank(unittest.TestCase):
         self.assertEqual(res.omnibus, 'friedman')
         self.assertEqual(res.posthoc, 'nemenyi')
         print(res)
+        plot_stats(res)
+        plt.draw()
 
     def test_autorank_nonnormal_homoscedactic(self):
         std = 0.3
-        means = [0.2, 0.3, 0.5, 0.8, 0.85, 0.9]
+        means = [0.2, 0.3, 0.5, 0.8, 0.85, 0.9, 0.1]
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
@@ -80,6 +92,8 @@ class TestAutorank(unittest.TestCase):
         self.assertEqual(res.omnibus, 'friedman')
         self.assertEqual(res.posthoc, 'nemenyi')
         print(res)
+        plot_stats(res)
+        plt.draw()
 
     def test_autorank_nonnormal_heteroscedactic(self):
         stds = [0.1, 0.1, 0.5, 0.1, 0.05, 0.05]
@@ -93,3 +107,5 @@ class TestAutorank(unittest.TestCase):
         self.assertEqual(res.omnibus, 'friedman')
         self.assertEqual(res.posthoc, 'nemenyi')
         print(res)
+        plot_stats(res)
+        plt.draw()

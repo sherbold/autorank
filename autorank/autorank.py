@@ -3,6 +3,8 @@ Automated ranking of populations for ranking them. This is basically an implemen
 Guidelines for the comparison of multiple classifiers. Details can be found in the description of the autorank function.
 """
 
+import warnings
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -12,6 +14,8 @@ from statsmodels.stats.libqsturng import qsturng
 from statsmodels.stats.multicomp import MultiComparison
 from statsmodels.stats.anova import AnovaRM
 from collections import namedtuple
+
+from autorank._util import cd_diagram, ci_plot
 
 
 def _cohen_d(x, y):
@@ -155,7 +159,7 @@ def _rank_multiple_normal_homoscedastic(data, alpha=0.05, verbose=False):
     # must create plot to get confidence intervals
     tukey_res.plot_simultaneous()
     # delete plot instead of showing
-    plt.clf()
+    plt.close()
     rankmat = data.rank(axis='columns', ascending=False)
     meanranks = rankmat.mean().sort_values()
     rankdf = pd.DataFrame(index=meanranks.index)
@@ -232,7 +236,7 @@ def _create_result_df_skeleton(data, alpha, all_normal):
 
 RankResult = namedtuple('RankResult', (
     'rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc', 'all_normal', 'pvals_shapiro', 'homoscedastic', 'pval_homogeneity',
-    'homogeneity_test'))
+    'homogeneity_test', 'alpha'))
 
 
 def autorank(data, alpha=0.05, verbose=False):
@@ -285,6 +289,7 @@ def autorank(data, alpha=0.05, verbose=False):
        - homoscedastic: True if populations are homoscedastic
        - pval_homogeneity: p-value of the test for homogeneity.
        - homogeneity_test: Test used for homogeneity.
+       - alpha: Significance level that was used. Same as input.
     """
 
     # validate inputs
@@ -348,4 +353,51 @@ def autorank(data, alpha=0.05, verbose=False):
             res = _rank_multiple_nonparametric(data, alpha, verbose, all_normal)
 
     return RankResult(res.rankdf, res.pvalue, res.cd, res.omnibus, res.posthoc, all_normal, pvals_shapiro, var_equal,
-                      pval_homogeneity, homogeneity_test)
+                      pval_homogeneity, homogeneity_test, alpha)
+
+
+def plot_stats(result, allow_insignificant=False, ax=None, width=None):
+    """
+    Creates a plot that supports the analysis of the results of the statistical test. The plot depends on the
+    statistical test that was used.
+    - Creates a Confidence Interval (CI) plot for a paired t-test between two normal populations. The confidence
+     intervals are calculated with Bonferoni correction, i.e., a confidence level of alpha/2.
+    - Creats a CI plot for Tukey's HSD as post-hoc test with the confidence intervals calculated using the HSD approach
+     such that the family wise significance is alpha.
+    - Creates Critical Distance (CD) diagrams for the Nemenyi post-hoc test. CD diagrams visualize the mean ranks of
+     populations. Populations that are not significantly different are connected by a horizontal bar.
+
+    This function raises a ValueError if the omnibus test did not detect a significant difference. The allow_significant
+    parameter allows the suppression of this exception and forces the creation of the plots.
+
+    :param result: Result must be of type RankResult and should be the outcome of calling the autorank function.
+    :param allow_insignificant: Forces plotting even if results are not significant. (Default: False)
+    :param ax:  Matplotlib axis to which the results are added. A new figure with a single axis is
+    created if None. (Default: None)
+    :param width: Specifies the width of the created plot is not None. By default, we use a width of 6. The height is
+    automatically determined, based on the type of plot and the number of populations. This parameter is ignored if ax
+    is not None. (Default: None)
+    :return: axis with the plot.
+    """
+    if not isinstance(result, RankResult):
+        raise TypeError("result must be of type RankResult and should be the outcome of calling the autorank function.")
+
+    if result.pvalue >= result.alpha and not allow_insignificant:
+        raise ValueError(
+            "result is not significant and results of the plot may be misleading. If you want to create the plot "
+            "regardless, use the allow_insignificant parameter to surpress this exception.")
+
+    if ax is not None and width is not None:
+        warnings.warn('width may be ignored because ax is defined.')
+    if width is None:
+        width=6
+
+    if result.omnibus == 'ttest':
+        ax = ci_plot(result, True, ax, width)
+    elif result.omnibus == 'wilcoxon':
+        warnings.warn('No plot to visualize statistics for Wilcoxon test available. Doing nothing.')
+    elif result.posthoc == 'tukeyhsd':
+        ax = ci_plot(result, True, ax, width)
+    elif result.posthoc == 'nemenyi':
+        ax = cd_diagram(result, True, ax, width)
+    return ax
