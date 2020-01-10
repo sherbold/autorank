@@ -530,16 +530,16 @@ def create_report(result):
                             cur_groupstr = ", ".join([names[pop] for pop in group[:-1]]) + ", and " + names[group[-1]]
                         groupstrs.append(cur_groupstr)
                     print("Based post-hoc Tukey HSD test, we assume that there are no significant differences within "
-                          "the following groups: %s." % ("; ".join(groupstrs)))
+                          "the following groups: %s. All other differences are significant." % ("; ".join(groupstrs)))
                 print()
         elif result.omnibus == 'friedman':
             if result.pvalue >= result.alpha:
-                print("We failed to reject the null hypothesis (alpha=%f) of the Friedman test that there is a "
+                print("We failed to reject the null hypothesis (alpha=%f) of the Friedman test that there is no "
                       "difference in the central tendency of the populations %s. Therefore, we "
                       "assume that there is no statistically significant difference between the median values of the "
                       "populations." % (result.alpha, population_string))
             else:
-                print("We reject the null hypothesis (alpha=%f) of the Friedman test that there is a "
+                print("We reject the null hypothesis (alpha=%f) of the Friedman test that there is no "
                       "difference in the central tendency of the populations %s. Therefore, we "
                       "assume that there is a statistically significant difference between the median values of the "
                       "populations." % (result.alpha, population_string))
@@ -559,6 +559,6 @@ def create_report(result):
                             cur_groupstr = ", ".join([names[pop] for pop in group[:-1]]) + ", and " + names[group[-1]]
                         groupstrs.append(cur_groupstr)
                     print("Based the post-hoc Nemenyi test, we assume that there are no significant differences within "
-                          "the following groups: %s." % ("; ".join(groupstrs)))
+                          "the following groups: %s. All other differences are significant." % ("; ".join(groupstrs)))
         else:
             raise ValueError('Unknown omnibus test for difference in the central tendency: %s' % result.omnibus)
