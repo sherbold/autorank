@@ -13,6 +13,7 @@ class TestAutorank(unittest.TestCase):
         print("In method", self._testMethodName)
         print('-------------------------------')
         self.sample_size = 50
+        self.verbose = False
         np.random.seed(42)
 
     def tearDown(self) -> None:
@@ -29,11 +30,10 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
-        res = autorank(data, 0.05, True)
+        res = autorank(data, 0.05, self.verbose)
         self.assertTrue(res.all_normal)
         self.assertTrue(res.homoscedastic)
         self.assertEqual(res.omnibus, 'ttest')
-        print(res)
         plot_stats(res)
         plt.draw()
         create_report(res)
@@ -44,26 +44,24 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
-        res = autorank(data, 0.05, True)
+        res = autorank(data, 0.05, self.verbose)
         self.assertFalse(res.all_normal)
         self.assertTrue(res.homoscedastic)
         self.assertEqual(res.omnibus, 'wilcoxon')
-        print(res)
         plot_stats(res)
         create_report(res)
 
     def test_autorank_normal_homsocedactic(self):
         std = 0.2
-        means = [0.2, 0.3, 0.5, 0.55, 0.6, 0.9]
+        means = [0.2, 0.3, 0.5, 0.55, 0.6, 0.6, 0.9]
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size)
-        res = autorank(data, 0.05, True)
+        res = autorank(data, 0.05, self.verbose)
         self.assertTrue(res.all_normal)
         self.assertTrue(res.homoscedastic)
         self.assertEqual(res.omnibus, 'anova')
         self.assertEqual(res.posthoc, 'tukeyhsd')
-        print(res)
         plot_stats(res)
         plt.draw()
         create_report(res)
@@ -74,12 +72,11 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, stds[i], self.sample_size)
-        res = autorank(data, 0.05, True)
+        res = autorank(data, 0.05, self.verbose)
         self.assertTrue(res.all_normal)
         self.assertFalse(res.homoscedastic)
         self.assertEqual(res.omnibus, 'friedman')
         self.assertEqual(res.posthoc, 'nemenyi')
-        print(res)
         plot_stats(res)
         plt.draw()
         create_report(res)
@@ -90,12 +87,11 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
-        res = autorank(data, 0.05, True)
+        res = autorank(data, 0.05, self.verbose)
         self.assertFalse(res.all_normal)
         self.assertTrue(res.homoscedastic)
         self.assertEqual(res.omnibus, 'friedman')
         self.assertEqual(res.posthoc, 'nemenyi')
-        print(res)
         plot_stats(res)
         plt.draw()
         create_report(res)
@@ -106,12 +102,11 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, stds[i], self.sample_size).clip(0, 1)
-        res = autorank(data, 0.05, True)
+        res = autorank(data, 0.05, self.verbose)
         self.assertFalse(res.all_normal)
         self.assertFalse(res.homoscedastic)
         self.assertEqual(res.omnibus, 'friedman')
         self.assertEqual(res.posthoc, 'nemenyi')
-        print(res)
         plot_stats(res)
         plt.draw()
         create_report(res)

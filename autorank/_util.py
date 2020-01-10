@@ -3,6 +3,38 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+def get_sorted_rank_groups(result, reverse):
+    if reverse:
+        names = result.rankdf.iloc[::-1].index.to_list()
+        if result.cd is not None:
+            sorted_ranks = result.rankdf.iloc[::-1].meanrank
+            critical_difference = result.cd
+        else:
+            sorted_ranks = result.rankdf.iloc[::-1]['mean']
+            critical_difference = (result.rankdf.ci_upper[0] - result.rankdf.ci_lower[0]) / 2
+    else:
+        names = result.rankdf.index.to_list()
+        if result.cd is not None:
+            sorted_ranks = result.rankdf.meanrank
+            critical_difference = result.cd
+        else:
+            sorted_ranks = result.rankdf['mean']
+            critical_difference = (result.rankdf.ci_upper[0] - result.rankdf.ci_lower[0]) / 2
+
+    groups = []
+    cur_max_j = -1
+    for i in range(len(sorted_ranks)):
+        max_j = None
+        for j in range(i + 1, len(sorted_ranks)):
+            if abs(sorted_ranks[i] - sorted_ranks[j]) <= critical_difference:
+                max_j = j
+                # print(i, j)
+        if max_j is not None and max_j > cur_max_j:
+            cur_max_j = max_j
+            groups.append((i, max_j))
+    return sorted_ranks, names, groups
+
+
 def cd_diagram(result, reverse, ax, width):
     """
     Creates a Critical Distance diagram.
@@ -14,12 +46,7 @@ def cd_diagram(result, reverse, ax, width):
     def plot_text(x, y, s, *args, **kwargs):
         ax.text(x / width, y / height, s, *args, **kwargs)
 
-    if reverse:
-        sorted_ranks = result.rankdf.iloc[::-1].meanrank
-        names = result.rankdf.iloc[::-1].index
-    else:
-        sorted_ranks = result.rankdf.meanrank
-        names = result.rankdf.index
+    sorted_ranks, names, groups = get_sorted_rank_groups(result, reverse)
     cd = result.cd
 
     lowv = min(1, int(math.floor(min(sorted_ranks))))
@@ -35,19 +62,7 @@ def cd_diagram(result, reverse, ax, width):
             relative_rank = highv - rank
         return textspace + scalewidth / (highv - lowv) * relative_rank
 
-    lines = []
-    cur_max_j = -1
-    for i in range(len(sorted_ranks)):
-        max_j = None
-        for j in range(i + 1, len(sorted_ranks)):
-            if abs(sorted_ranks[i] - sorted_ranks[j] <= cd):
-                max_j = j
-                # print(i, j)
-        if max_j is not None and max_j > cur_max_j:
-            cur_max_j = max_j
-            lines.append((i, max_j))
-
-    linesblank = 0.2 + 0.2 + (len(lines) - 1) * 0.1
+    linesblank = 0.2 + 0.2 + (len(groups) - 1) * 0.1
 
     # add scale
     distanceh = 0.25
@@ -123,7 +138,7 @@ def cd_diagram(result, reverse, ax, width):
     side = 0.05
     no_sig_height = 0.1
     start = cline + 0.2
-    for l, r in lines:
+    for l, r in groups:
         plot_line([(rankpos(sorted_ranks[l]) - side, start),
                    (rankpos(sorted_ranks[r]) + side, start)],
                   linewidth=2.5)

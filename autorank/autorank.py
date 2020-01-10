@@ -15,7 +15,7 @@ from statsmodels.stats.multicomp import MultiComparison
 from statsmodels.stats.anova import AnovaRM
 from collections import namedtuple
 
-from autorank._util import cd_diagram, ci_plot
+from autorank._util import cd_diagram, ci_plot, get_sorted_rank_groups
 
 
 def _cohen_d(x, y):
@@ -385,12 +385,12 @@ def plot_stats(result, allow_insignificant=False, ax=None, width=None):
     if result.pvalue >= result.alpha and not allow_insignificant:
         raise ValueError(
             "result is not significant and results of the plot may be misleading. If you want to create the plot "
-            "regardless, use the allow_insignificant parameter to surpress this exception.")
+            "regardless, use the allow_insignificant parameter to suppress this exception.")
 
     if ax is not None and width is not None:
         warnings.warn('width may be ignored because ax is defined.')
     if width is None:
-        width=6
+        width = 6
 
     if result.omnibus == 'ttest':
         ax = ci_plot(result, True, ax, width)
@@ -403,9 +403,17 @@ def plot_stats(result, allow_insignificant=False, ax=None, width=None):
     return ax
 
 
-def create_report(res):
+def create_report(result):
+    """
+    Prints a report about the statistical analysis. 
+    
+    :param result: Result must be of type RankResult and should be the outcome of calling the autorank function.
+    """
+    # TODO add ranks to Nemenyi
+    # TODO add CIs
+    # TODO add effect sizes to multiple comparisons.
     def create_population_string(populations):
-        if len(populations)==1:
+        if len(populations) == 1:
             popstr = " " + populations[0]
         elif len(populations) == 2:
             popstr = "s " + " and ".join(populations)
@@ -413,63 +421,144 @@ def create_report(res):
             popstr = "s " + ", ".join(populations[:-1]) + ", and " + populations[-1]
         return popstr
 
-    print("The statistical analysis was conducted for %i populations with %i paired samples." % (len(res.rankdf),
-                                                                                                 res.num_samples))
-    if res.all_normal:
-        print("We failed to reject the null hypothesis that the population is normal for all populations (adjusted"
-              "alpha=%f) and, therefore, assume that all populations are normal." % res.alpha_normality)
+    print("The statistical analysis was conducted for %i populations with %i paired samples." % (len(result.rankdf),
+                                                                                                 result.num_samples))
+    if result.all_normal:
+        print("We failed to reject the null hypothesis that the population is normal for all populations (adjusted "
+              "alpha=%f). Therefore, we assume that all populations are normal." % result.alpha_normality)
     else:
         not_normal = []
         normal = []
-        for i, pval in enumerate(res.pvals_shapiro):
-            if pval<res.alpha_normality:
-                not_normal.append(res.rankdf.index[i])
+        for i, pval in enumerate(result.pvals_shapiro):
+            if pval < result.alpha_normality:
+                not_normal.append(result.rankdf.index[i])
             else:
-                normal.append(res.rankdf.index[i])
-        print("We rejected the null hypothesis that the population is normal for the population%s"
-              "(adjusted alpha=%f)." % (create_population_string(not_normal), res.alpha_normality))
+                normal.append(result.rankdf.index[i])
+        print("We rejected the null hypothesis that the population is normal for the population%s "
+              "(adjusted alpha=%f). Therefore, we assume that not all populations are "
+              "normal." % (create_population_string(not_normal), result.alpha_normality))
 
-    if len(res.rankdf)==2:
+    if len(result.rankdf) == 2:
         print("No check for homogeneity was required because we only have two populations.")
-        if res.omnibus=='ttest':
-            if res.pvalue>=res.alpha:
+        if result.omnibus == 'ttest':
+            if result.pvalue >= result.alpha:
                 print("We failed to reject the null hypothesis (alpha=%f) of the paired t-test that the mean values of "
-                      "the populations %s (M=%f, SD=%f) and %s (M=%f, SD=%f) are are equal and, therefore, "
+                      "the populations %s (M=%f, SD=%f) and %s (M=%f, SD=%f) are are equal. Therefore, we "
                       "assume that there is no statistically significant difference between the mean values of the "
-                      "populations." % (res.alpha,
-                                        res.rankdf.index[0], res.rankdf['mean'][0], res.rankdf['std'][0],
-                                        res.rankdf.index[1], res.rankdf['mean'][1], res.rankdf['std'][1]))
+                      "populations." % (result.alpha,
+                                        result.rankdf.index[0], result.rankdf['mean'][0], result.rankdf['std'][0],
+                                        result.rankdf.index[1], result.rankdf['mean'][1], result.rankdf['std'][1]))
             else:
                 print("We reject the null hypothesis (alpha=%f) of the paired t-test that the mean values of the "
                       "populations %s (M=%f, SD=%f) and %s (M=%f, SD=%f) are "
-                      "equal and, therefore, assume that the mean value of %s is "
+                      "equal. Therefore, we assume that the mean value of %s is "
                       "significantly larger than the mean value of %s with a %s effect size (d=%f)."
-                      % (res.alpha,
-                         res.rankdf.index[0], res.rankdf['mean'][0], res.rankdf['std'][0],
-                         res.rankdf.index[1], res.rankdf['mean'][1], res.rankdf['std'][1],
-                         res.rankdf.index[0], res.rankdf.index[1],
-                         res.rankdf.magnitude[1], res.rankdf.effect_size[1]))
-        elif res.omnibus=='wilcoxon':
-            if res.pvalue>=res.alpha:
+                      % (result.alpha,
+                         result.rankdf.index[0], result.rankdf['mean'][0], result.rankdf['std'][0],
+                         result.rankdf.index[1], result.rankdf['mean'][1], result.rankdf['std'][1],
+                         result.rankdf.index[0], result.rankdf.index[1],
+                         result.rankdf.magnitude[1], result.rankdf.effect_size[1]))
+        elif result.omnibus == 'wilcoxon':
+            if result.pvalue >= result.alpha:
                 print("We failed to reject the null hypothesis (alpha=%f) of Wilcoxon's signed rank test that "
-                      "population %s (MD=%f, MAD=%f) is not greater than population %s (MD=%f, MAD=%f) and, therefore, "
+                      "population %s (MD=%f, MAD=%f) is not greater than population %s (MD=%f, MAD=%f). Therefore, we "
                       "assume that there is no statistically significant difference between the medians of the "
-                      "populations." % (res.alpha,
-                                        res.rankdf.index[0], res.rankdf['median'][0], res.rankdf['mad'][0],
-                                        res.rankdf.index[1], res.rankdf['median'][1], res.rankdf['mad'][1]))
+                      "populations." % (result.alpha,
+                                        result.rankdf.index[0], result.rankdf['median'][0], result.rankdf['mad'][0],
+                                        result.rankdf.index[1], result.rankdf['median'][1], result.rankdf['mad'][1]))
             else:
                 print("We reject the null hypothesis (alpha=%f) of Wilcoxon's signed rank test that population "
-                      "%s (MD=%f, MAD=%f) is not greater than population %s (MD=%f, MAD=%f) and, therefore, assume " 
+                      "%s (MD=%f, MAD=%f) is not greater than population %s (MD=%f, MAD=%f). Therefore, we assume "
                       "that the median of %s is "
                       "significantly larger than the median value of %s with a %s effect size (delta=%f)."
-                      % (res.alpha,
-                         res.rankdf.index[0], res.rankdf['median'][0], res.rankdf['mad'][0],
-                         res.rankdf.index[1], res.rankdf['median'][1], res.rankdf['mad'][1],
-                         res.rankdf.index[0], res.rankdf.index[1],
-                         res.rankdf.magnitude[1], res.rankdf.effect_size[1]))
+                      % (result.alpha,
+                         result.rankdf.index[0], result.rankdf['median'][0], result.rankdf['mad'][0],
+                         result.rankdf.index[1], result.rankdf['median'][1], result.rankdf['mad'][1],
+                         result.rankdf.index[0], result.rankdf.index[1],
+                         result.rankdf.magnitude[1], result.rankdf.effect_size[1]))
             pass
         else:
-            raise ValueError('Unknown type of omnibus test for difference in centrality: %s' % res.omnibus)
+            raise ValueError('Unknown omnibus test for difference in the central tendency: %s' % result.omnibus)
     else:
-        print("Texts for multiple populations not yet implemented.")
+        if result.all_normal:
+            population_strings = []
+            for population in result.rankdf.index:
+                population_strings.append("%s (M=%f, SD=%f)" % (population, result.rankdf.at[population, 'mean'],
+                                                                result.rankdf.at[population, 'std']))
+            population_string = ", ".join(population_strings[:-1]) + ", and " + population_strings[-1]
+        else:
+            population_strings = []
+            for population in result.rankdf.index:
+                population_strings.append("%s (MD=%f, MAD=%f)" % (population, result.rankdf.at[population, 'median'],
+                                                                  result.rankdf.at[population, 'mad']))
+            population_string = ", ".join(population_strings[:-1]) + ", and " + population_strings[-1]
 
+        if result.all_normal:
+            if result.homoscedastic:
+                print("We applied Bartlett's test for homogeneity and failed to reject the null hypothesis (alpha=%f) "
+                      "that the data is homoscedastic. Thus, we assume that our data is "
+                      "homoscedastic." % result.pval_homogeneity)
+            else:
+                print("We applied Bartlett's test for homogeneity and reject the null hypothesis (alpha=%f) that the"
+                      "data is homoscedastic. Thus, we assume that our data is "
+                      "heteroscedastic." % result.pval_homogeneity)
+
+        if result.omnibus == 'anova':
+            if result.pvalue >= result.alpha:
+                print("We failed to reject the null hypothesis (alpha=%f) of the repeated measures ANOVA that there is "
+                      "a difference between the mean values of the populations %s. Therefore, we "
+                      "assume that there is no statistically significant difference between the mean values of the "
+                      "populations." % (result.alpha, population_string))
+            else:
+                print("We reject the null hypothesis (alpha=%f) of the repeated measures ANOVA that there is "
+                      "a difference between the mean values of the populations %s. Therefore, we "
+                      "assume that there is a statistically significant difference between the mean values of the "
+                      "populations." % (result.alpha, population_string))
+                meanranks, names, groups = get_sorted_rank_groups(result, False)
+                if len(groups) == 0:
+                    print("Based on post-hoc Tukey HSD test, we assume that all differences between the populations "
+                          "are significant.")
+                else:
+                    groupstrs = []
+                    for group_range in groups:
+                        group = range(group_range[0], group_range[1] + 1)
+                        if len(group) == 1:
+                            cur_groupstr = names[group[0]]
+                        elif len(group) == 2:
+                            cur_groupstr = " and ".join([names[pop] for pop in group])
+                        else:
+                            cur_groupstr = ", ".join([names[pop] for pop in group[:-1]]) + ", and " + names[group[-1]]
+                        groupstrs.append(cur_groupstr)
+                    print("Based post-hoc Tukey HSD test, we assume that there are no significant differences within "
+                          "the following groups: %s." % ("; ".join(groupstrs)))
+                print()
+        elif result.omnibus == 'friedman':
+            if result.pvalue >= result.alpha:
+                print("We failed to reject the null hypothesis (alpha=%f) of the Friedman test that there is a "
+                      "difference in the central tendency of the populations %s. Therefore, we "
+                      "assume that there is no statistically significant difference between the median values of the "
+                      "populations." % (result.alpha, population_string))
+            else:
+                print("We reject the null hypothesis (alpha=%f) of the Friedman test that there is a "
+                      "difference in the central tendency of the populations %s. Therefore, we "
+                      "assume that there is a statistically significant difference between the median values of the "
+                      "populations." % (result.alpha, population_string))
+                meanranks, names, groups = get_sorted_rank_groups(result, False)
+                if len(groups) == 0:
+                    print("Based on post-hoc Nemenyi test, we assume that all differences between the populations "
+                          "are significant.")
+                else:
+                    groupstrs = []
+                    for group_range in groups:
+                        group = range(group_range[0], group_range[1] + 1)
+                        if len(group) == 1:
+                            cur_groupstr = names[group[0]]
+                        elif len(group) == 2:
+                            cur_groupstr = " and ".join([names[pop] for pop in group])
+                        else:
+                            cur_groupstr = ", ".join([names[pop] for pop in group[:-1]]) + ", and " + names[group[-1]]
+                        groupstrs.append(cur_groupstr)
+                    print("Based the post-hoc Nemenyi test, we assume that there are no significant differences within "
+                          "the following groups: %s." % ("; ".join(groupstrs)))
+        else:
+            raise ValueError('Unknown omnibus test for difference in the central tendency: %s' % result.omnibus)
