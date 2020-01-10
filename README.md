@@ -66,7 +66,7 @@ sample_size = 50
 data = pd.DataFrame()
 for i, mean in enumerate(means):
     data['pop_%i' % i] = np.random.normal(mean, std, sample_size).clip(0, 1)
-res = autorank(data, alpha=0.05, verbose=True)
+res = autorank(data, alpha=0.05)
 print(res)
 ```
 
@@ -104,10 +104,41 @@ pval_homogeneity=0.2663177301695518,
 homogeneity_test='levene')
 ```
 
+You can also use Autorank to generate a plot that visualizes the statistical analysis. Autorank creates plots of the
+confidence interval in case of the paired t-test and repeated measures ANOVA and a critical distance diagram for the
+post-hoc Nemenyi test. 
+
+```python
+from autorank.autorank import plot_stats
+
+plot_stats(res)
+```
+
+For the above example, the following plot is created:
+![CD Diagram](example/cd_diagram.png)
+
+You can also get a report in natural language about the results of the statistical tests. 
+```python
+import matplotlib.pyplot as plt
+from autorank.autorank import create_report
+
+create_report(res)
+plt.show()
+
+```
+
+For example, the following report is created for the example above:
+
+> The statistical analysis was conducted for 6 populations with 50 paired samples.
+We rejected the null hypothesis that the population is normal for the populations pop_5, pop_2, pop_1, and pop_0 (adjusted alpha=0.008333). Therefore, we assume that not all populations are normal.
+We reject the null hypothesis (alpha=0.050000) of the Friedman test that there is no difference in the central tendency of the populations pop_5 (MD=0.912005, MAD=0.130461), pop_4 (MD=0.910437, MAD=0.132786), pop_3 (MD=0.858091, MAD=0.210394), pop_2 (MD=0.505057, MAD=0.333594), pop_1 (MD=0.313824, MAD=0.247339), and pop_0 (MD=0.129756, MAD=0.192377). Therefore, we assume that there is a statistically significant difference between the median values of the populations.
+Based the post-hoc Nemenyi test, we assume that there are no significant differences within the following groups: pop_5, pop_4, and pop_3; pop_2 and pop_1; pop_1 and pop_0. All other differences are significant.
+
+
 ## Planned Features
 
-In the (hopefully near) future, Autorank will be extended to support the generation of appropriate visualizations for the tests and for 
-results tables. 
+The core of Autorank is finished. The next potential feature would be the generation of the report in Latex, that
+combines (and extends) the current report generation functions. 
 
 ## License
 
