@@ -48,7 +48,10 @@ We use the paired t-test, the Wilcoxon signed rank test, and the Friedman test f
 repeated measures ANOVA and Tukey's HSD test (including the calculation of the confidence intervals) are used from
 [statsmodels](statsmodels). We use own implementations for the calculation of critical distance of the Nemenyi test,
 the calculation of the effect sizes, and the calculation of the confidence intervals (with the exception of Tukey's
-HSD).  
+HSD).
+
+The following flow chart summarizes the decisions made by Autorank. 
+![CD Diagram](flowchart.png)
   
 ## Usage Example
 
