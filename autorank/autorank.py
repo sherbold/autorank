@@ -410,16 +410,34 @@ def create_report(result):
     :param result: Result must be of type RankResult and should be the outcome of calling the autorank function.
     """
     # TODO add ranks to Nemenyi
-    # TODO add CIs
     # TODO add effect sizes to multiple comparisons.
-    def create_population_string(populations):
-        if len(populations) == 1:
-            popstr = " " + populations[0]
-        elif len(populations) == 2:
-            popstr = "s " + " and ".join(populations)
+    def single_population_string(population, with_stats = False):
+        if with_stats:
+            halfwidth = (result.rankdf.at[population, 'ci_upper'] - result.rankdf.at[population, 'ci_lower']) / 2
+            if result.all_normal:
+                central_tendency = result.rankdf.at[population, 'mean']
+                deviation = result.rankdf.at[population, 'std']
+            else:
+                central_tendency = result.rankdf.at[population, 'median']
+                deviation = result.rankdf.at[population, 'mad']
+            return "%s (M=%f+-%f, SD=%f)" % (population, central_tendency, halfwidth, deviation)
         else:
-            popstr = "s " + ", ".join(populations[:-1]) + ", and " + populations[-1]
+            return str(population)
+    def create_population_string(populations, with_stats = False):
+        if isinstance(populations, str):
+            populations = [populations]
+        population_strings = []
+        for population in populations:
+            population_strings.append(single_population_string(population, with_stats))
+        if len(populations) == 1:
+            popstr = population_strings[0]
+        elif len(populations) == 2:
+            popstr = " and ".join(population_strings)
+        else:
+            popstr = ", ".join(population_strings[:-1]) + ", and " + population_strings[-1]
         return popstr
+
+    population_string = create_population_string(result.rankdf.index, with_stats=True)
 
     print("The statistical analysis was conducted for %i populations with %i paired samples." % (len(result.rankdf),
                                                                                                  result.num_samples))
@@ -434,65 +452,52 @@ def create_report(result):
                 not_normal.append(result.rankdf.index[i])
             else:
                 normal.append(result.rankdf.index[i])
-        print("We rejected the null hypothesis that the population is normal for the population%s "
+        if len(not_normal)==1:
+            population_term = 'population'
+        else:
+            population_term = 'populations'
+        print("We rejected the null hypothesis that the population is normal for the %s %s "
               "(adjusted alpha=%f). Therefore, we assume that not all populations are "
-              "normal." % (create_population_string(not_normal), result.alpha_normality))
+              "normal." % (population_term, create_population_string(not_normal), result.alpha_normality))
 
     if len(result.rankdf) == 2:
         print("No check for homogeneity was required because we only have two populations.")
         if result.omnibus == 'ttest':
             if result.pvalue >= result.alpha:
                 print("We failed to reject the null hypothesis (alpha=%f) of the paired t-test that the mean values of "
-                      "the populations %s (M=%f, SD=%f) and %s (M=%f, SD=%f) are are equal. Therefore, we "
+                      "the populations %s are are equal. Therefore, we "
                       "assume that there is no statistically significant difference between the mean values of the "
-                      "populations." % (result.alpha,
-                                        result.rankdf.index[0], result.rankdf['mean'][0], result.rankdf['std'][0],
-                                        result.rankdf.index[1], result.rankdf['mean'][1], result.rankdf['std'][1]))
+                      "populations." % (result.alpha, population_string))
             else:
                 print("We reject the null hypothesis (alpha=%f) of the paired t-test that the mean values of the "
-                      "populations %s (M=%f, SD=%f) and %s (M=%f, SD=%f) are "
+                      "populations %s are "
                       "equal. Therefore, we assume that the mean value of %s is "
                       "significantly larger than the mean value of %s with a %s effect size (d=%f)."
-                      % (result.alpha,
-                         result.rankdf.index[0], result.rankdf['mean'][0], result.rankdf['std'][0],
-                         result.rankdf.index[1], result.rankdf['mean'][1], result.rankdf['std'][1],
+                      % (result.alpha, population_string,
                          result.rankdf.index[0], result.rankdf.index[1],
                          result.rankdf.magnitude[1], result.rankdf.effect_size[1]))
         elif result.omnibus == 'wilcoxon':
             if result.pvalue >= result.alpha:
                 print("We failed to reject the null hypothesis (alpha=%f) of Wilcoxon's signed rank test that "
-                      "population %s (MD=%f, MAD=%f) is not greater than population %s (MD=%f, MAD=%f). Therefore, we "
+                      "population %s is not greater than population %s . Therefore, we "
                       "assume that there is no statistically significant difference between the medians of the "
                       "populations." % (result.alpha,
-                                        result.rankdf.index[0], result.rankdf['median'][0], result.rankdf['mad'][0],
-                                        result.rankdf.index[1], result.rankdf['median'][1], result.rankdf['mad'][1]))
+                                        create_population_string(result.rankdf.index[0], with_stats=True),
+                                        create_population_string(result.rankdf.index[1], with_stats=True)))
             else:
                 print("We reject the null hypothesis (alpha=%f) of Wilcoxon's signed rank test that population "
-                      "%s (MD=%f, MAD=%f) is not greater than population %s (MD=%f, MAD=%f). Therefore, we assume "
+                      "%s is not greater than population %s. Therefore, we assume "
                       "that the median of %s is "
                       "significantly larger than the median value of %s with a %s effect size (delta=%f)."
                       % (result.alpha,
-                         result.rankdf.index[0], result.rankdf['median'][0], result.rankdf['mad'][0],
-                         result.rankdf.index[1], result.rankdf['median'][1], result.rankdf['mad'][1],
+                         create_population_string(result.rankdf.index[0], with_stats=True),
+                         create_population_string(result.rankdf.index[1], with_stats=True),
                          result.rankdf.index[0], result.rankdf.index[1],
                          result.rankdf.magnitude[1], result.rankdf.effect_size[1]))
             pass
         else:
             raise ValueError('Unknown omnibus test for difference in the central tendency: %s' % result.omnibus)
     else:
-        if result.all_normal:
-            population_strings = []
-            for population in result.rankdf.index:
-                population_strings.append("%s (M=%f, SD=%f)" % (population, result.rankdf.at[population, 'mean'],
-                                                                result.rankdf.at[population, 'std']))
-            population_string = ", ".join(population_strings[:-1]) + ", and " + population_strings[-1]
-        else:
-            population_strings = []
-            for population in result.rankdf.index:
-                population_strings.append("%s (MD=%f, MAD=%f)" % (population, result.rankdf.at[population, 'median'],
-                                                                  result.rankdf.at[population, 'mad']))
-            population_string = ", ".join(population_strings[:-1]) + ", and " + population_strings[-1]
-
         if result.all_normal:
             if result.homoscedastic:
                 print("We applied Bartlett's test for homogeneity and failed to reject the null hypothesis (alpha=%f) "
