@@ -452,7 +452,7 @@ def create_report(result):
                 not_normal.append(result.rankdf.index[i])
             else:
                 normal.append(result.rankdf.index[i])
-        if len(not_normal)==1:
+        if len(not_normal) == 1:
             population_term = 'population'
         else:
             population_term = 'populations'
