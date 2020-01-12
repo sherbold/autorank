@@ -183,26 +183,36 @@ def create_report(result):
     
     :param result: Result must be of type RankResult and should be the outcome of calling the autorank function.
     """
-    # TODO add ranks to Nemenyi
+
     # TODO add effect sizes to multiple comparisons.
-    def single_population_string(population, with_stats = False):
+    def single_population_string(population, with_stats=False, pval=None, with_rank=True):
+        if pval is not None:
+            return "%s (p=%f)" % (population, pval)
         if with_stats:
             halfwidth = (result.rankdf.at[population, 'ci_upper'] - result.rankdf.at[population, 'ci_lower']) / 2
+            mystats = []
             if result.all_normal:
-                central_tendency = result.rankdf.at[population, 'mean']
-                deviation = result.rankdf.at[population, 'std']
+                mystats.append("M=%f+-%f" % (result.rankdf.at[population, 'mean'], halfwidth))
+                mystats.append("SD=%f" % result.rankdf.at[population, 'std'])
             else:
-                central_tendency = result.rankdf.at[population, 'median']
-                deviation = result.rankdf.at[population, 'mad']
-            return "%s (M=%f+-%f, SD=%f)" % (population, central_tendency, halfwidth, deviation)
+                mystats.append("MD=%f+-%f" % (result.rankdf.at[population, 'median'], halfwidth))
+                mystats.append("MAD=%f" % result.rankdf.at[population, 'mad'])
+            if with_rank:
+                mystats.append("MR=%f" % result.rankdf.at[population, 'meanrank'])
+            return "%s (%s)" % (population, ", ".join(mystats))
         else:
             return str(population)
-    def create_population_string(populations, with_stats = False):
+
+    def create_population_string(populations, with_stats=False, pvals=None, with_rank=False):
         if isinstance(populations, str):
             populations = [populations]
         population_strings = []
-        for population in populations:
-            population_strings.append(single_population_string(population, with_stats))
+        for i, population in enumerate(populations):
+            if pvals is not None:
+                pval = pvals[i]
+            else:
+                pval = None
+            population_strings.append(single_population_string(population, with_stats, pval, with_rank))
         if len(populations) == 1:
             popstr = population_strings[0]
         elif len(populations) == 2:
@@ -211,59 +221,63 @@ def create_report(result):
             popstr = ", ".join(population_strings[:-1]) + ", and " + population_strings[-1]
         return popstr
 
-    population_string = create_population_string(result.rankdf.index, with_stats=True)
-
     print("The statistical analysis was conducted for %i populations with %i paired samples." % (len(result.rankdf),
                                                                                                  result.num_samples))
+    print("The family-wise significance level of the tests is alpha=%f." % result.alpha)
+
     if result.all_normal:
-        print("We failed to reject the null hypothesis that the population is normal for all populations (adjusted "
-              "alpha=%f). Therefore, we assume that all populations are normal." % result.alpha_normality)
+        min_pvalue = min(result.pvals_shapiro)
+        print("We failed to reject the null hypothesis that the population is normal for all populations "
+              "(minimal observed p-value=%f). Therefore, we assume that all populations are "
+              "normal." % min_pvalue)
     else:
         not_normal = []
+        pvals = []
         normal = []
         for i, pval in enumerate(result.pvals_shapiro):
             if pval < result.alpha_normality:
                 not_normal.append(result.rankdf.index[i])
+                pvals.append(pval)
             else:
                 normal.append(result.rankdf.index[i])
         if len(not_normal) == 1:
             population_term = 'population'
         else:
             population_term = 'populations'
-        print("We rejected the null hypothesis that the population is normal for the %s %s "
-              "(adjusted alpha=%f). Therefore, we assume that not all populations are "
-              "normal." % (population_term, create_population_string(not_normal), result.alpha_normality))
+        print("We rejected the null hypothesis that the population is normal for the %s %s. "
+              "Therefore, we assume that not all populations are "
+              "normal." % (population_term, create_population_string(not_normal, pvals=pvals)))
 
     if len(result.rankdf) == 2:
         print("No check for homogeneity was required because we only have two populations.")
         if result.omnibus == 'ttest':
             if result.pvalue >= result.alpha:
-                print("We failed to reject the null hypothesis (alpha=%f) of the paired t-test that the mean values of "
+                print("We failed to reject the null hypothesis (p=%f) of the paired t-test that the mean values of "
                       "the populations %s are are equal. Therefore, we "
                       "assume that there is no statistically significant difference between the mean values of the "
-                      "populations." % (result.alpha, population_string))
+                      "populations." % (result.pvalue, create_population_string(result.rankdf.index, with_stats=True)))
             else:
-                print("We reject the null hypothesis (alpha=%f) of the paired t-test that the mean values of the "
+                print("We reject the null hypothesis (p=%f) of the paired t-test that the mean values of the "
                       "populations %s are "
                       "equal. Therefore, we assume that the mean value of %s is "
                       "significantly larger than the mean value of %s with a %s effect size (d=%f)."
-                      % (result.alpha, population_string,
+                      % (result.pvalue, create_population_string(result.rankdf.index, with_stats=True),
                          result.rankdf.index[0], result.rankdf.index[1],
                          result.rankdf.magnitude[1], result.rankdf.effect_size[1]))
         elif result.omnibus == 'wilcoxon':
             if result.pvalue >= result.alpha:
-                print("We failed to reject the null hypothesis (alpha=%f) of Wilcoxon's signed rank test that "
+                print("We failed to reject the null hypothesis (p=%f) of Wilcoxon's signed rank test that "
                       "population %s is not greater than population %s . Therefore, we "
                       "assume that there is no statistically significant difference between the medians of the "
-                      "populations." % (result.alpha,
+                      "populations." % (result.pvalue,
                                         create_population_string(result.rankdf.index[0], with_stats=True),
                                         create_population_string(result.rankdf.index[1], with_stats=True)))
             else:
-                print("We reject the null hypothesis (alpha=%f) of Wilcoxon's signed rank test that population "
+                print("We reject the null hypothesis (p=%f) of Wilcoxon's signed rank test that population "
                       "%s is not greater than population %s. Therefore, we assume "
                       "that the median of %s is "
                       "significantly larger than the median value of %s with a %s effect size (delta=%f)."
-                      % (result.alpha,
+                      % (result.pvalue,
                          create_population_string(result.rankdf.index[0], with_stats=True),
                          create_population_string(result.rankdf.index[1], with_stats=True),
                          result.rankdf.index[0], result.rankdf.index[1],
@@ -284,15 +298,15 @@ def create_report(result):
 
         if result.omnibus == 'anova':
             if result.pvalue >= result.alpha:
-                print("We failed to reject the null hypothesis (alpha=%f) of the repeated measures ANOVA that there is "
+                print("We failed to reject the null hypothesis (p=%f) of the repeated measures ANOVA that there is "
                       "a difference between the mean values of the populations %s. Therefore, we "
                       "assume that there is no statistically significant difference between the mean values of the "
-                      "populations." % (result.alpha, population_string))
+                      "populations." % (result.pvalue, create_population_string(result.rankdf.index, with_stats=True)))
             else:
-                print("We reject the null hypothesis (alpha=%f) of the repeated measures ANOVA that there is "
+                print("We reject the null hypothesis (p=%f) of the repeated measures ANOVA that there is "
                       "a difference between the mean values of the populations %s. Therefore, we "
                       "assume that there is a statistically significant difference between the mean values of the "
-                      "populations." % (result.alpha, population_string))
+                      "populations." % (result.pvalue, create_population_string(result.rankdf.index, with_stats=True)))
                 meanranks, names, groups = get_sorted_rank_groups(result, False)
                 if len(groups) == 0:
                     print("Based on post-hoc Tukey HSD test, we assume that all differences between the populations "
@@ -313,15 +327,17 @@ def create_report(result):
                 print()
         elif result.omnibus == 'friedman':
             if result.pvalue >= result.alpha:
-                print("We failed to reject the null hypothesis (alpha=%f) of the Friedman test that there is no "
+                print("We failed to reject the null hypothesis (p=%f) of the Friedman test that there is no "
                       "difference in the central tendency of the populations %s. Therefore, we "
                       "assume that there is no statistically significant difference between the median values of the "
-                      "populations." % (result.alpha, population_string))
+                      "populations." % (result.pvalue,
+                                        create_population_string(result.rankdf.index, with_stats=True, with_rank=True)))
             else:
-                print("We reject the null hypothesis (alpha=%f) of the Friedman test that there is no "
+                print("We reject the null hypothesis (p=%f) of the Friedman test that there is no "
                       "difference in the central tendency of the populations %s. Therefore, we "
                       "assume that there is a statistically significant difference between the median values of the "
-                      "populations." % (result.alpha, population_string))
+                      "populations." % (result.pvalue,
+                                        create_population_string(result.rankdf.index, with_stats=True, with_rank=True)))
                 meanranks, names, groups = get_sorted_rank_groups(result, False)
                 if len(groups) == 0:
                     print("Based on post-hoc Nemenyi test, we assume that all differences between the populations "
