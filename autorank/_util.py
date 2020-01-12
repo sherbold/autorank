@@ -1,6 +1,229 @@
 import math
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+
+from scipy import stats
+from statsmodels.stats.libqsturng import qsturng
+from statsmodels.stats.multicomp import MultiComparison
+from statsmodels.stats.anova import AnovaRM
+from collections import namedtuple
+
+
+def _cohen_d(x, y):
+    """
+    Calculate the effect size using Cohen's d
+    """
+    nx = len(x)
+    ny = len(y)
+    dof = nx + ny - 2
+    return (np.mean(x) - np.mean(y)) / np.sqrt(
+        ((nx - 1) * np.std(x, ddof=1) ** 2 + (ny - 1) * np.std(y, ddof=1) ** 2) / dof)
+
+
+def _cliffs_delta(x, y):
+    """
+    Calculates Cliff's delta.
+    """
+    delta = 0
+    for x_val in x:
+        result = 0
+        for y_val in y:
+            if y_val > x_val:
+                result -= 1
+            elif x_val > y_val:
+                result += 1
+        delta += result / len(y)
+    if abs(delta) < 10e-16:
+        # due to minor rounding errors
+        delta = 0
+    else:
+        delta = delta / len(x)
+    return delta
+
+
+def _effect_level(effect_size, method='cohend'):
+    """
+    Determines magnitude of effect size.
+    """
+    if not isinstance(method, str):
+        raise TypeError('method must be of type str')
+    if method not in ['cohend', 'cliffdelta']:
+        raise ValueError("method must be one of the following strings: 'cohend', 'cliffdelta'")
+    effect_size = abs(effect_size)
+    if method == 'cliffdelta':
+        if effect_size < 0.147:
+            return 'negligible'
+        elif effect_size < 0.33:
+            return 'small'
+        elif effect_size < 0.474:
+            return 'medium'
+        else:
+            return 'large'
+    if method == 'cohend':
+        if effect_size < 0.2:
+            return 'negligible'
+        elif effect_size < 0.5:
+            return 'small'
+        elif effect_size < 0.8:
+            return 'medium'
+        else:
+            return 'large'
+
+
+def _critical_distance(alpha, k, n):
+    """
+    Determines the critical distance for the Nemenyi test with infinite degrees of freedom.
+    """
+    return qsturng(1 - alpha, k, np.inf) * np.sqrt(k * (k + 1) / (12 * n))
+
+
+def _confidence_interval(data, alpha, is_normal=True):
+    """
+    Determines the confidence interval.
+    """
+    if is_normal:
+        mean = data.mean()
+        ci_range = data.sem() * stats.t.ppf((1 + 1 - alpha) / 2, len(data) - 1)
+        return mean - ci_range, mean + ci_range
+    else:
+        quantile = stats.norm.ppf(1 - (alpha / 2))
+        r = (len(data) / 2) - (quantile * np.sqrt(len(data) / 2))
+        s = 1 + (len(data) / 2) + (quantile * np.sqrt(len(data) / 2))
+        sorted_data = data.sort_values()
+        lower = sorted_data.iloc[int(round(r))]
+        upper = sorted_data.iloc[int(round(s))]
+        return lower, upper
+
+
+_ComparisonResult = namedtuple('ComparisonResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc'))
+
+
+def rank_two(data, alpha, verbose, all_normal):
+    """
+    Uses paired t-test for normal data and Wilcoxon's signed rank test for other distributions.
+    """
+    if verbose:
+        if all_normal:
+            print("Using paired t-test")
+        else:
+            print("Using Wilcoxon's signed rank test (one-sided)")
+    larger = np.argmax(data.median().values)
+    smaller = int(bool(larger - 1))
+    if all_normal:
+        omnibus = 'ttest'
+        pval = stats.ttest_rel(data.iloc[:, larger], data.iloc[:, smaller]).pvalue
+    else:
+        omnibus = 'wilcoxon'
+        pval = stats.wilcoxon(data.iloc[:, larger], data.iloc[:, smaller], alternative='greater').pvalue
+    if verbose:
+        if pval >= alpha:
+            print(
+                "Fail to reject null hypothesis that there is no difference between the distributions (p=%f)" % pval)
+        else:
+            print("Rejecting null hypothesis that there is no difference between the distributions (p=%f)" % pval)
+    rankdf = _create_result_df_skeleton(data, alpha, all_normal)
+    return _ComparisonResult(rankdf, pval, None, omnibus, None)
+
+
+def rank_multiple_normal_homoscedastic(data, alpha=0.05, verbose=False):
+    """
+    Analyzes data using repeated measures ANOVA and Tukey HSD.
+    """
+    stacked_data = data.stack().reset_index()
+    stacked_data = stacked_data.rename(columns={'level_0': 'id',
+                                                'level_1': 'treatment',
+                                                0: 'result'})
+    anova = AnovaRM(stacked_data, 'result', 'id', within=['treatment'])
+    pval = anova.fit().anova_table['Pr > F'].iat[0]
+    if verbose:
+        if pval >= alpha:
+            print(
+                "Fail to reject null hypothesis that there is no difference between the distributions (p=%f)" % pval)
+        else:
+            print("Rejecting null hypothesis that there is no difference between the distributions (p=%f)" % pval)
+            print(
+                "Using Tukey HSD post hoc test.",
+                "Differences are significant if the confidence intervals of the mean values are not overlapping.")
+
+    multicomp = MultiComparison(stacked_data['result'], stacked_data['treatment'])
+    tukey_res = multicomp.tukeyhsd()
+    # must create plot to get confidence intervals
+    tukey_res.plot_simultaneous()
+    # delete plot instead of showing
+    plt.close()
+    rankmat = data.rank(axis='columns', ascending=False)
+    meanranks = rankmat.mean().sort_values()
+    rankdf = pd.DataFrame(index=meanranks.index)
+    rankdf['meanrank'] = meanranks
+    rankdf = _create_result_df_skeleton(data, None, True)
+    for population in rankdf.index:
+        mean = data.loc[:, population].mean()
+        ci_range = tukey_res.halfwidths[data.columns.get_loc(population)]
+        lower, upper = mean - ci_range, mean + ci_range
+        rankdf.at[population, 'ci_lower'] = lower
+        rankdf.at[population, 'ci_upper'] = upper
+    return _ComparisonResult(rankdf, pval, None, 'anova', 'tukeyhsd')
+
+
+def rank_multiple_nonparametric(data, alpha, verbose, all_normal):
+    """
+    Analyzes data following Demsar using Friedman-Nemenyi.
+    """
+    if verbose:
+        print("Using Friedman test as omnibus test")
+    pval = stats.friedmanchisquare(*data.transpose().values).pvalue
+    if verbose:
+        if pval >= alpha:
+            print("Fail to reject null hypothesis that there is no difference between the distributions (p=%f)" % pval)
+        else:
+            print("Rejecting null hypothesis that there is no difference between the distributions (p=%f)" % pval)
+            print(
+                "Using Nemenyi post-hoc test.",
+                "Differences are significant,"
+                "if the distance between the mean ranks is greater than the critical distance.")
+    cd = _critical_distance(alpha, k=len(data.columns), n=len(data))
+    rankdf = _create_result_df_skeleton(data, alpha, all_normal)
+    return _ComparisonResult(rankdf, pval, cd, 'friedman', 'nemenyi')
+
+
+def _create_result_df_skeleton(data, alpha, all_normal):
+    """
+    Creates data frame for results. CI may be left empty in case alpha is None
+    """
+    if all_normal:
+        effsize_method = 'cohend'
+    else:
+        effsize_method = 'cliffdelta'
+
+    rankmat = data.rank(axis='columns', ascending=False)
+    meanranks = rankmat.mean().sort_values()
+    if effsize_method == 'cohend':
+        rankdf = pd.DataFrame(index=meanranks.index,
+                              columns=['meanrank', 'mean', 'std', 'ci_lower', 'ci_upper', 'effect_size', 'magnitude'])
+    else:
+        rankdf = pd.DataFrame(index=meanranks.index,
+                              columns=['meanrank', 'median', 'mad', 'ci_lower', 'ci_upper', 'effect_size', 'magnitude'])
+    rankdf['meanrank'] = meanranks
+    for population in rankdf.index:
+        if effsize_method == 'cohend':
+            effsize = _cohen_d(data.loc[:, rankdf.index[0]], data.loc[:, population])
+            rankdf.at[population, 'mean'] = data.loc[:, population].mean()
+            rankdf.at[population, 'std'] = data.loc[:, population].std()
+        elif effsize_method == 'cliffdelta':
+            effsize = _cliffs_delta(data.loc[:, rankdf.index[0]], data.loc[:, population])
+            rankdf.at[population, 'median'] = data.loc[:, population].median()
+            rankdf.at[population, 'mad'] = stats.median_absolute_deviation(data.loc[:, population])
+        else:
+            raise ValueError("Unknown effsize method, this should not be possible.")
+        rankdf.at[population, 'effect_size'] = effsize
+        rankdf.at[population, 'magnitude'] = _effect_level(effsize, effsize_method)
+        if alpha is not None:
+            lower, upper = _confidence_interval(data.loc[:, population], alpha / len(data.columns),
+                                                is_normal=all_normal)
+            rankdf.at[population, 'ci_lower'] = lower
+            rankdf.at[population, 'ci_upper'] = upper
+    return rankdf
 
 
 def get_sorted_rank_groups(result, reverse):
