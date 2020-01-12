@@ -50,6 +50,12 @@ class TestAutorank(unittest.TestCase):
         self.assertTrue(res.homoscedastic)
         self.assertEqual(res.omnibus, 'ttest')
         self.assertFalse(res.pvalue<res.alpha)
+        try:
+            plot_stats(res)
+            self.fail("ValueError expected")
+        except ValueError:
+            pass
+        plot_stats(res, allow_insignificant=True)
         create_report(res)
 
     def test_autorank_nonnormal_homoscedactic_two(self):
@@ -76,6 +82,12 @@ class TestAutorank(unittest.TestCase):
         self.assertTrue(res.homoscedastic)
         self.assertEqual(res.omnibus, 'wilcoxon')
         self.assertTrue(res.pvalue >= res.alpha)
+        try:
+            plot_stats(res)
+            self.fail("ValueError expected")
+        except ValueError:
+            pass
+        plot_stats(res, allow_insignificant=True)
         create_report(res)
 
     def test_autorank_normal_homsocedactic(self):
@@ -106,6 +118,12 @@ class TestAutorank(unittest.TestCase):
         self.assertEqual(res.omnibus, 'anova')
         self.assertEqual(res.posthoc, 'tukeyhsd')
         self.assertTrue(res.pvalue >= res.alpha)
+        try:
+            plot_stats(res)
+            self.fail("ValueError expected")
+        except ValueError:
+            pass
+        plot_stats(res, allow_insignificant=True)
         create_report(res)
 
     def test_autorank_normal_heteroscedactic(self):
@@ -136,6 +154,12 @@ class TestAutorank(unittest.TestCase):
         self.assertEqual(res.omnibus, 'friedman')
         self.assertEqual(res.posthoc, 'nemenyi')
         self.assertTrue(res.pvalue >= res.alpha)
+        try:
+            plot_stats(res)
+            self.fail("ValueError expected")
+        except ValueError:
+            pass
+        plot_stats(res, allow_insignificant=True)
         create_report(res)
 
     def test_autorank_nonnormal_homoscedactic(self):
@@ -166,6 +190,12 @@ class TestAutorank(unittest.TestCase):
         self.assertEqual(res.omnibus, 'friedman')
         self.assertEqual(res.posthoc, 'nemenyi')
         self.assertTrue(res.pvalue >= res.alpha)
+        try:
+            plot_stats(res)
+            self.fail("ValueError expected")
+        except ValueError:
+            pass
+        plot_stats(res, allow_insignificant=True)
         create_report(res)
 
     def test_autorank_nonnormal_heteroscedactic(self):
@@ -196,4 +226,10 @@ class TestAutorank(unittest.TestCase):
         self.assertEqual(res.omnibus, 'friedman')
         self.assertEqual(res.posthoc, 'nemenyi')
         self.assertTrue(res.pvalue >= res.alpha)
+        try:
+            plot_stats(res)
+            self.fail("ValueError expected")
+        except ValueError:
+            pass
+        plot_stats(res, allow_insignificant=True)
         create_report(res)
