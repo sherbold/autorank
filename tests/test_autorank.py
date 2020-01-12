@@ -184,7 +184,7 @@ class TestAutorank(unittest.TestCase):
         plt.draw()
         create_report(res)
 
-    def test_autorank_nonnormal_heteroscedactic(self):
+    def test_autorank_nonnormal_heteroscedactic_no_difference(self):
         stds = [0.1, 0.1, 0.5, 0.1, 0.05, 0.05]
         means = [0.9, 0.9, 0.9, 0.9, 0.9, 0.9]
         data = pd.DataFrame()
