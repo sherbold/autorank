@@ -4,7 +4,9 @@ Guidelines for the comparison of multiple classifiers. Details can be found in t
 """
 
 import warnings
+import sys
 
+from io import StringIO
 from autorank._util import *
 
 
@@ -130,13 +132,13 @@ def autorank(data, alpha=0.05, verbose=False):
                       pval_homogeneity, homogeneity_test, alpha, alpha_normality, len(data))
 
 
-def plot_stats(result, allow_insignificant=False, ax=None, width=None):
+def plot_stats(result, *, allow_insignificant=False, ax=None, width=None):
     """
     Creates a plot that supports the analysis of the results of the statistical test. The plot depends on the
     statistical test that was used.
     - Creates a Confidence Interval (CI) plot for a paired t-test between two normal populations. The confidence
      intervals are calculated with Bonferoni correction, i.e., a confidence level of alpha/2.
-    - Creats a CI plot for Tukey's HSD as post-hoc test with the confidence intervals calculated using the HSD approach
+    - Creates a CI plot for Tukey's HSD as post-hoc test with the confidence intervals calculated using the HSD approach
      such that the family wise significance is alpha.
     - Creates Critical Distance (CD) diagrams for the Nemenyi post-hoc test. CD diagrams visualize the mean ranks of
      populations. Populations that are not significantly different are connected by a horizontal bar.
@@ -177,7 +179,7 @@ def plot_stats(result, allow_insignificant=False, ax=None, width=None):
     return ax
 
 
-def create_report(result, decimal_places=3):
+def create_report(result, *, decimal_places=3):
     """
     Prints a report about the statistical analysis. 
     
@@ -304,10 +306,10 @@ def create_report(result, decimal_places=3):
         if result.all_normal:
             if result.homoscedastic:
                 print("We applied Bartlett's test for homogeneity and failed to reject the null hypothesis "
-                      "(alpha=%.*f) that the data is homoscedastic. Thus, we assume that our data is "
+                      "(p=%.*f) that the data is homoscedastic. Thus, we assume that our data is "
                       "homoscedastic." % (decimal_places, result.pval_homogeneity))
             else:
-                print("We applied Bartlett's test for homogeneity and reject the null hypothesis (alpha=%.*f) that the"
+                print("We applied Bartlett's test for homogeneity and reject the null hypothesis (p=%.*f) that the"
                       "data is homoscedastic. Thus, we assume that our data is "
                       "heteroscedastic." % (decimal_places, result.pval_homogeneity))
 
@@ -403,3 +405,107 @@ def create_report(result, decimal_places=3):
                           "the following groups: %s. All other differences are significant." % ("; ".join(groupstrs)))
         else:
             raise ValueError('Unknown omnibus test for difference in the central tendency: %s' % result.omnibus)
+
+
+def latex_report(result, *, decimal_places=3, prefix="", generate_plots=True, figure_path="", complete_document=True):
+    """
+    Creates a latex report of the statistical analysis.
+
+    :param result: Result must be of type RankResult and should be the outcome of calling the autorank function.
+    :param decimal_places: Number of decimal places that are used for the report.
+    :param prefix: Prefix that is added before all labels and plot file names.
+    :param generate_plots: Decides if plots are generated, if the results are statistically significant.
+    :param figure_path: Path where the plots shall be written to. Ignored if generate_plots is False.
+    :param complete_document: Generates a complete latex document is true. Otherwise only a single section is generated.
+    """
+    if not isinstance(result, RankResult):
+        raise TypeError("result must be of type RankResult and should be the outcome of calling the autorank function.")
+
+    if complete_document:
+        print(r"\documentclass{article}")
+        print()
+        print(r"\usepackage{graphicx}")
+        print(r"\usepackage{booktabs}")
+        print()
+        print(r"\begin{document}")
+        print()
+
+    print(r"\section{Results}")
+    print(r"\label{sec:%sresults}" % prefix)
+    print()
+    old_stdout = sys.stdout
+    sys.stdout = StringIO()
+    create_report(result, decimal_places=decimal_places)
+    report = sys.stdout.getvalue()
+    sys.stdout = old_stdout
+    report = report.replace("_", r"\_")
+    report = report.replace("+-", r"$\pm$")
+    report = report.replace("(d=", "($d$=")
+    report = report.replace("(delta=", r"($\delta$=")
+    report = report.replace("is alpha", r"$\alpha$")
+    print(report.strip())
+    print()
+
+    if len(result.rankdf) > 2:
+        # result table only for multiple populations
+        table_df = result.rankdf
+        columns = table_df.columns.to_list()
+        if result.pvalue >= result.alpha:
+            columns.remove('effect_size')
+            columns.remove('magnitude')
+        if result.posthoc == 'tukeyhsd':
+            columns.remove('meanrank')
+        columns.insert(columns.index('ci_lower'), 'CI')
+        columns.remove('ci_lower')
+        columns.remove('ci_upper')
+        rename_map = {}
+        if result.all_normal:
+            rename_map['effect_size'] = '$d$'
+        else:
+            rename_map['effect_size'] = r'D-E-L-T-A'
+        rename_map['magnitude'] = 'Magnitude'
+        rename_map['mad'] = 'MAD'
+        rename_map['median'] = 'MED'
+        rename_map['meanrank'] = 'MR'
+        rename_map['mean'] = 'M'
+        rename_map['std'] = 'SD'
+        format_string = '[{0[ci_lower]:.'+str(decimal_places)+'f}, {0[ci_upper]:.'+str(decimal_places)+'f}]'
+        table_df['CI'] = table_df.agg(format_string.format, axis=1)
+        table_df = table_df[columns]
+        table_df = table_df.rename(rename_map, axis='columns')
+
+        float_format = "{:0."+str(decimal_places)+"f}"
+        table_string = table_df.to_latex(float_format=float_format.format).strip()
+        table_string = table_string.replace('D-E-L-T-A', r'$\delta$')
+        print(r"\begin{table}[h]")
+        print(r"\centering")
+        print(table_string)
+        print(r"\caption{Summary of populations}")
+        print(r"\label{tbl:%sstat_results}" % prefix)
+        print(r"\end{table}")
+        print()
+
+    if generate_plots and result.pvalue < result.alpha and result.omnibus == 'wilcoxon':
+        # only include plots if the results are significant
+        plot_stats(result)
+        if len(figure_path) > 0 and not figure_path.endswith("/"):
+            figure_path += '/'
+        figure_path = "%s%sstat_results.pdf" % (figure_path, prefix)
+        plt.savefig()
+
+        print(r"\begin{figure}[h]")
+        print(r"\includegraphics[]{%s}" % figure_path)
+        if result.posthoc == 'nemenyi':
+            print(r"\caption{CD diagram to visualize the results of the Nemenyi post-hoc test. The horizontal lines "
+                  r"indicate that differences are not significant.}")
+        elif result.posthoc == 'TukeyHSD' or result.posthoc == 'ttest':
+            print(r"\caption{Confidence intervals and mean values of the populations.}")
+        else:
+            # fallback in case of unknown post-hoc test. should not happen
+            print(r"\caption{Plot of the results}")
+        print(r"\label{fig:%sstats_fig}" % prefix)
+        print(r"\end{figure}")
+        print()
+
+    if complete_document:
+        print(r"\end{document}")
