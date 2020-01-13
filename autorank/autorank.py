@@ -407,6 +407,54 @@ def create_report(result, *, decimal_places=3):
             raise ValueError('Unknown omnibus test for difference in the central tendency: %s' % result.omnibus)
 
 
+def latex_table(result, *, decimal_places=3, label=None):
+    """
+    Creates a latex table from the results dataframe of the statistical analysis.
+
+    :param result: Result must be of type RankResult and should be the outcome of calling the autorank function.
+    :param decimal_places: Number of decimal places that are used for the report.
+    :param label: label for the table
+    """
+    if label is None:
+        label = 'tbl:stat_results'
+
+    table_df = result.rankdf
+    columns = table_df.columns.to_list()
+    if result.pvalue >= result.alpha:
+        columns.remove('effect_size')
+        columns.remove('magnitude')
+    if result.posthoc == 'tukeyhsd':
+        columns.remove('meanrank')
+    columns.insert(columns.index('ci_lower'), 'CI')
+    columns.remove('ci_lower')
+    columns.remove('ci_upper')
+    rename_map = {}
+    if result.all_normal:
+        rename_map['effect_size'] = '$d$'
+    else:
+        rename_map['effect_size'] = r'D-E-L-T-A'
+    rename_map['magnitude'] = 'Magnitude'
+    rename_map['mad'] = 'MAD'
+    rename_map['median'] = 'MED'
+    rename_map['meanrank'] = 'MR'
+    rename_map['mean'] = 'M'
+    rename_map['std'] = 'SD'
+    format_string = '[{0[ci_lower]:.' + str(decimal_places) + 'f}, {0[ci_upper]:.' + str(decimal_places) + 'f}]'
+    table_df['CI'] = table_df.agg(format_string.format, axis=1)
+    table_df = table_df[columns]
+    table_df = table_df.rename(rename_map, axis='columns')
+
+    float_format = "{:0." + str(decimal_places) + "f}"
+    table_string = table_df.to_latex(float_format=float_format.format).strip()
+    table_string = table_string.replace('D-E-L-T-A', r'$\delta$')
+    print(r"\begin{table}[h]")
+    print(r"\centering")
+    print(table_string)
+    print(r"\caption{Summary of populations}")
+    print(r"\label{%s}" % label)
+    print(r"\end{table}")
+
+
 def latex_report(result, *, decimal_places=3, prefix="", generate_plots=True, figure_path="", complete_document=True):
     """
     Creates a latex report of the statistical analysis.
@@ -447,42 +495,7 @@ def latex_report(result, *, decimal_places=3, prefix="", generate_plots=True, fi
     print()
 
     if len(result.rankdf) > 2:
-        # result table only for multiple populations
-        table_df = result.rankdf
-        columns = table_df.columns.to_list()
-        if result.pvalue >= result.alpha:
-            columns.remove('effect_size')
-            columns.remove('magnitude')
-        if result.posthoc == 'tukeyhsd':
-            columns.remove('meanrank')
-        columns.insert(columns.index('ci_lower'), 'CI')
-        columns.remove('ci_lower')
-        columns.remove('ci_upper')
-        rename_map = {}
-        if result.all_normal:
-            rename_map['effect_size'] = '$d$'
-        else:
-            rename_map['effect_size'] = r'D-E-L-T-A'
-        rename_map['magnitude'] = 'Magnitude'
-        rename_map['mad'] = 'MAD'
-        rename_map['median'] = 'MED'
-        rename_map['meanrank'] = 'MR'
-        rename_map['mean'] = 'M'
-        rename_map['std'] = 'SD'
-        format_string = '[{0[ci_lower]:.'+str(decimal_places)+'f}, {0[ci_upper]:.'+str(decimal_places)+'f}]'
-        table_df['CI'] = table_df.agg(format_string.format, axis=1)
-        table_df = table_df[columns]
-        table_df = table_df.rename(rename_map, axis='columns')
-
-        float_format = "{:0."+str(decimal_places)+"f}"
-        table_string = table_df.to_latex(float_format=float_format.format).strip()
-        table_string = table_string.replace('D-E-L-T-A', r'$\delta$')
-        print(r"\begin{table}[h]")
-        print(r"\centering")
-        print(table_string)
-        print(r"\caption{Summary of populations}")
-        print(r"\label{tbl:%sstat_results}" % prefix)
-        print(r"\end{table}")
+        latex_table(result, decimal_places=decimal_places, label='tbl:%sstat_results' % prefix)
         print()
 
     if generate_plots and result.pvalue < result.alpha and result.omnibus == 'wilcoxon':
