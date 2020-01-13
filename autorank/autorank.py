@@ -251,6 +251,9 @@ def create_report(result):
     if len(result.rankdf) == 2:
         print("No check for homogeneity was required because we only have two populations.")
         if result.omnibus == 'ttest':
+            print("Because we have only two populations and both populations are normal, we use the t-test to "
+                  "determine differences between the mean values of the populations and report the mean value (M)"
+                  "and the standard deviation (SD) for each population. ")
             if result.pvalue >= result.alpha:
                 print("We failed to reject the null hypothesis (p=%f) of the paired t-test that the mean values of "
                       "the populations %s are are equal. Therefore, we "
@@ -265,6 +268,13 @@ def create_report(result):
                          result.rankdf.index[0], result.rankdf.index[1],
                          result.rankdf.magnitude[1], result.rankdf.effect_size[1]))
         elif result.omnibus == 'wilcoxon':
+            if len(not_normal) == 1:
+                notnormal_str = 'one of them is'
+            else:
+                notnormal_str = 'both of them are'
+            print("Because we have only two populations and %s not normal, we use Wilcoxon's signed rank test to "
+                  "determine the differences in the central tendency and report the median (MD) and the median "
+                  "absolute deviation (MAD) for each population." % notnormal_str)
             if result.pvalue >= result.alpha:
                 print("We failed to reject the null hypothesis (p=%f) of Wilcoxon's signed rank test that "
                       "population %s is not greater than population %s . Therefore, we "
@@ -297,6 +307,13 @@ def create_report(result):
                       "heteroscedastic." % result.pval_homogeneity)
 
         if result.omnibus == 'anova':
+            print("Because we have more than two populations and all populations are normal and homoscedastic, we use "
+                  "repeated measures ANOVA as omnibus "
+                  "test to determine if there are any significant differences between the mean values of the "
+                  "populations. If the results of the ANOVA test are significant, we use the post-hoc Tukey HSD test "
+                  "to infer which differences are significant. We report the mean value (M) and the standard deviation "
+                  "(SD) for each population. Populations are significantly different if their confidence intervals "
+                  "are not overlapping.")
             if result.pvalue >= result.alpha:
                 print("We failed to reject the null hypothesis (p=%f) of the repeated measures ANOVA that there is "
                       "a difference between the mean values of the populations %s. Therefore, we "
@@ -326,6 +343,28 @@ def create_report(result):
                           "the following groups: %s. All other differences are significant." % ("; ".join(groupstrs)))
                 print()
         elif result.omnibus == 'friedman':
+            if result.all_normal:
+                print("Because we have more than two populations and the populations are normal but heteroscedastic, "
+                      "we use the non-parametric Friedman test "
+                      "as omnibus test to determine if there are any significant differences between the mean values "
+                      "of the populations. We use the post-hoc Nemenyi test to infer which differences are "
+                      "significant. We report the mean value (M), the standard deviation (SD) and the mean rank (MR) "
+                      "among all populations over the samples. Differences between populations are significant, if the "
+                      "difference of the mean rank is greater than the critical distance CD=%f of the Nemenyi "
+                      "test." % result.cd)
+            else:
+                if len(not_normal) == 1:
+                    notnormal_str = 'one of them is'
+                else:
+                    notnormal_str = 'some of them are'
+                print("Because we have more than two populations and the populations and %s not normal, "
+                      "we use the non-parametric Friedman test "
+                      "as omnibus test to determine if there are any significant differences between the median values "
+                      "of the populations. We use the post-hoc Nemenyi test to infer which differences are "
+                      "significant. We report the median (MD), the median absolute deviation (MAD) and the mean rank "
+                      "(MR) among all populations over the samples. Differences between populations are significant, "
+                      "if the difference of the mean rank is greater than the critical distance CD=%f of the Nemenyi "
+                      "test." % (notnormal_str, result.cd))
             if result.pvalue >= result.alpha:
                 print("We failed to reject the null hypothesis (p=%f) of the Friedman test that there is no "
                       "difference in the central tendency of the populations %s. Therefore, we "
