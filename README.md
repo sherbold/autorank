@@ -1,4 +1,4 @@
-# autorank
+# Autorank
 
 ## Summary
 
@@ -50,16 +50,17 @@ repeated measures ANOVA and Tukey's HSD test (including the calculation of the c
 the calculation of the effect sizes, and the calculation of the confidence intervals (with the exception of Tukey's
 HSD).
 
-The following flow chart summarizes the decisions made by Autorank. 
+The following flow chart summarizes the decisions made by Autorank.
+ 
 ![CD Diagram](flowchart.png)
   
 ## Usage Example
 
-The following example shows the usage of `autorank`.
+The following example shows the usage of `autorank`. First, we import the functions from autorank and create some data. 
 ```python
 import numpy as np
 import pandas as pd
-from autorank.autorank import autorank
+from autorank.autorank import autorank, plot_stats, create_report, latex_table
 
 np.random.seed(42)
 pd.set_option('display.max_columns', 7)
@@ -69,24 +70,15 @@ sample_size = 50
 data = pd.DataFrame()
 for i, mean in enumerate(means):
     data['pop_%i' % i] = np.random.normal(mean, std, sample_size).clip(0, 1)
-res = autorank(data, alpha=0.05)
-print(res)
 ```
 
-The code yields the following output (added some newlines for better readability of this README).
+The statitistical analysis of the data only requires a single command. As a result, you get a named tuple with all relevant information from the statistical analysis conducted.  
+```python
+result = autorank(data, alpha=0.05, verbose=False)
+print(result)
+``` 
+Output: 
 ```
-Rejecting null hypothesis that data is normal for column pop_0 (p=0.000016<0.008333)
-Fail to reject null hypothesis that data is normal for column pop_1 (p=0.060517>=0.008333)
-Fail to reject null hypothesis that data is normal for column pop_2 (p=0.138845>=0.008333)
-Rejecting null hypothesis that data is normal for column pop_3 (p=0.000100<0.008333)
-Rejecting null hypothesis that data is normal for column pop_4 (p=0.000002<0.008333)
-Rejecting null hypothesis that data is normal for column pop_5 (p=0.000002<0.008333)
-Using Levene's test for homoscedacity of non-normal data.
-Fail to reject null hypothesis that all variances are equal (p=0.266318>=0.050000)
-Using Friedman test as omnibus test
-Rejecting null hypothesis that there is no difference between the distributions (p=0.000000)
-Using Nemenyi post-hoc test.
-Differences are significant, if the distance between the mean ranks is greater than the critical distance.
 RankResult(rankdf=
        meanrank    median       mad  ci_lower  ci_upper  effect_size    mangitude
 pop_5      2.18  0.912005  0.130461  0.692127         1  2.66454e-17   negligible
@@ -105,43 +97,78 @@ pvals_shapiro=[1.646607051952742e-05, 0.0605173334479332, 0.13884511590003967, 0
 homoscedastic=True,
 pval_homogeneity=0.2663177301695518,
 homogeneity_test='levene')
+alpha=0.05, 
+alpha_normality=0.008333333333333333, 
+num_samples=50)
 ```
 
-You can also use Autorank to generate a plot that visualizes the statistical analysis. Autorank creates plots of the
+You can go ahead and use this tuple to create your own report about the statistical analysis. Alternatively, you can use
+autorank for this task.  
+```python
+create_report(result)
+```
+Output:
+```
+The statistical analysis was conducted for 6 populations with 50 paired samples.
+The family-wise significance level of the tests is alpha=0.050.
+We rejected the null hypothesis that the population is normal for the populations pop_5 (p=0.000), pop_2 (p=0.000), 
+pop_1 (p=0.000), and pop_0 (p=0.000). Therefore, we assume that not all populations are normal.
+Because we have more than two populations and the populations and some of them are not normal, we use the 
+non-parametric Friedman test as omnibus test to determine if there are any significant differences between the 
+median values of the populations. We use the post-hoc Nemenyi test to infer which differences are significant. We report
+the median (MD), the median absolute deviation (MAD) and the mean rank (MR) among all populations over the samples. 
+Differences between populations are significant, if the difference of the mean rank is greater than the critical 
+distance CD=1.066 of the Nemenyi test.
+We reject the null hypothesis (p=0.000) of the Friedman test that there is no difference in the central tendency of 
+the populations pop_5 (MD=0.912+-0.154, MAD=0.130, MR=2.180), pop_4 (MD=0.910+-0.173, MAD=0.133, MR=2.290), pop_3 
+(MD=0.858+-0.213, MAD=0.210, MR=2.470), pop_2 (MD=0.505+-0.249, MAD=0.334, MR=3.950), pop_1 (MD=0.314+-0.199, 
+MAD=0.247, MR=4.710), and pop_0 (MD=0.130+-0.175, MAD=0.192, MR=5.400). Therefore, we assume that there is a 
+statistically significant difference between the median values of the populations.
+Based the post-hoc Nemenyi test, we assume that there are no significant differences within the following groups: 
+pop_5, pop_4, and pop_3; pop_2 and pop_1; pop_1 and pop_0. All other differences are significant.
+```
+Our you could use Autorank to generate a plot that visualizes the statistical analysis. Autorank creates plots of the
 confidence interval in case of the paired t-test and repeated measures ANOVA and a critical distance diagram for the
 post-hoc Nemenyi test. 
 
 ```python
-from autorank.autorank import plot_stats
-
 plot_stats(res)
+plt.show()
 ```
 
 For the above example, the following plot is created:
+
 ![CD Diagram](example/cd_diagram.png)
 
-You can also get a report in natural language about the results of the statistical tests. 
+To further support reporting in scholarly article, Autorank can also generate a latex table with the relevant results. 
 ```python
-import matplotlib.pyplot as plt
-from autorank.autorank import create_report
-
-create_report(res)
-plt.show()
-
+latex_table(res)
+```
+Output:
+```
+\begin{table}[h]
+\centering
+\begin{tabular}{lrlllll}
+\toprule
+{} &    MR &   MED &   MAD &              CI & $\delta$ &   Magnitude \\
+\midrule
+pop\_5 & 2.180 & 0.912 & 0.130 &  [0.692, 1.000] &     0.000 &  negligible \\
+pop\_4 & 2.290 & 0.910 & 0.133 &  [0.654, 1.000] &    -0.024 &  negligible \\
+pop\_3 & 2.470 & 0.858 & 0.210 &  [0.574, 1.000] &     0.136 &  negligible \\
+pop\_2 & 3.950 & 0.505 & 0.334 &  [0.227, 0.726] &     0.642 &       large \\
+pop\_1 & 4.710 & 0.314 & 0.247 &  [0.149, 0.547] &     0.852 &       large \\
+pop\_0 & 5.400 & 0.130 & 0.192 &  [0.000, 0.349] &     0.919 &       large \\
+\bottomrule
+\end{tabular}
+\caption{Summary of populations}
+\label{tbl:stat_results}
+\end{table}
 ```
 
-For example, the following report is created for the example above:
+The rendered table looks like this (may change depending on the class of the document).
+ 
+![Table](example/table.png)
 
-> The statistical analysis was conducted for 6 populations with 50 paired samples.
-We rejected the null hypothesis that the population is normal for the populations pop_5, pop_2, pop_1, and pop_0 (adjusted alpha=0.008333). Therefore, we assume that not all populations are normal.
-We reject the null hypothesis (alpha=0.050000) of the Friedman test that there is no difference in the central tendency of the populations pop_5 (MD=0.912005, MAD=0.130461), pop_4 (MD=0.910437, MAD=0.132786), pop_3 (MD=0.858091, MAD=0.210394), pop_2 (MD=0.505057, MAD=0.333594), pop_1 (MD=0.313824, MAD=0.247339), and pop_0 (MD=0.129756, MAD=0.192377). Therefore, we assume that there is a statistically significant difference between the median values of the populations.
-Based the post-hoc Nemenyi test, we assume that there are no significant differences within the following groups: pop_5, pop_4, and pop_3; pop_2 and pop_1; pop_1 and pop_0. All other differences are significant.
-
-
-## Planned Features
-
-The core of Autorank is finished. The next potential feature would be the generation of the report in Latex, that
-combines (and extends) the current report generation functions. 
 
 ## License
 
