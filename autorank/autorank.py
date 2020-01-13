@@ -177,28 +177,31 @@ def plot_stats(result, allow_insignificant=False, ax=None, width=None):
     return ax
 
 
-def create_report(result):
+def create_report(result, decimal_places=3):
     """
     Prints a report about the statistical analysis. 
     
     :param result: Result must be of type RankResult and should be the outcome of calling the autorank function.
+    :param decimal_places: Number of decimal places that are used for the report.
     """
 
     # TODO add effect sizes to multiple comparisons.
     def single_population_string(population, with_stats=False, pval=None, with_rank=True):
         if pval is not None:
-            return "%s (p=%f)" % (population, pval)
+            return "%s (p=%.*f)" % (population, decimal_places, pval)
         if with_stats:
             halfwidth = (result.rankdf.at[population, 'ci_upper'] - result.rankdf.at[population, 'ci_lower']) / 2
             mystats = []
             if result.all_normal:
-                mystats.append("M=%f+-%f" % (result.rankdf.at[population, 'mean'], halfwidth))
-                mystats.append("SD=%f" % result.rankdf.at[population, 'std'])
+                mystats.append("M=%.*f+-%.*f" % (decimal_places, result.rankdf.at[population, 'mean'],
+                                                 decimal_places, halfwidth))
+                mystats.append("SD=%.*f" % (decimal_places, result.rankdf.at[population, 'std']))
             else:
-                mystats.append("MD=%f+-%f" % (result.rankdf.at[population, 'median'], halfwidth))
-                mystats.append("MAD=%f" % result.rankdf.at[population, 'mad'])
+                mystats.append("MD=%.*f+-%.*f" % (decimal_places, result.rankdf.at[population, 'median'],
+                                                  decimal_places, halfwidth))
+                mystats.append("MAD=%.*f" % (decimal_places, result.rankdf.at[population, 'mad']))
             if with_rank:
-                mystats.append("MR=%f" % result.rankdf.at[population, 'meanrank'])
+                mystats.append("MR=%.*f" % (decimal_places, result.rankdf.at[population, 'meanrank']))
             return "%s (%s)" % (population, ", ".join(mystats))
         else:
             return str(population)
@@ -223,13 +226,13 @@ def create_report(result):
 
     print("The statistical analysis was conducted for %i populations with %i paired samples." % (len(result.rankdf),
                                                                                                  result.num_samples))
-    print("The family-wise significance level of the tests is alpha=%f." % result.alpha)
+    print("The family-wise significance level of the tests is alpha=%.*f." % (decimal_places, result.alpha))
 
     if result.all_normal:
         min_pvalue = min(result.pvals_shapiro)
         print("We failed to reject the null hypothesis that the population is normal for all populations "
-              "(minimal observed p-value=%f). Therefore, we assume that all populations are "
-              "normal." % min_pvalue)
+              "(minimal observed p-value=%.*f). Therefore, we assume that all populations are "
+              "normal." % (decimal_places, min_pvalue))
     else:
         not_normal = []
         pvals = []
@@ -255,18 +258,20 @@ def create_report(result):
                   "determine differences between the mean values of the populations and report the mean value (M)"
                   "and the standard deviation (SD) for each population. ")
             if result.pvalue >= result.alpha:
-                print("We failed to reject the null hypothesis (p=%f) of the paired t-test that the mean values of "
+                print("We failed to reject the null hypothesis (p=%.*f) of the paired t-test that the mean values of "
                       "the populations %s are are equal. Therefore, we "
                       "assume that there is no statistically significant difference between the mean values of the "
-                      "populations." % (result.pvalue, create_population_string(result.rankdf.index, with_stats=True)))
+                      "populations." % (decimal_places, result.pvalue,
+                                        create_population_string(result.rankdf.index, with_stats=True)))
             else:
-                print("We reject the null hypothesis (p=%f) of the paired t-test that the mean values of the "
+                print("We reject the null hypothesis (p=%.*f) of the paired t-test that the mean values of the "
                       "populations %s are "
                       "equal. Therefore, we assume that the mean value of %s is "
-                      "significantly larger than the mean value of %s with a %s effect size (d=%f)."
-                      % (result.pvalue, create_population_string(result.rankdf.index, with_stats=True),
+                      "significantly larger than the mean value of %s with a %s effect size (d=%.*f)."
+                      % (decimal_places, result.pvalue,
+                         create_population_string(result.rankdf.index, with_stats=True),
                          result.rankdf.index[0], result.rankdf.index[1],
-                         result.rankdf.magnitude[1], result.rankdf.effect_size[1]))
+                         result.rankdf.magnitude[1], decimal_places, result.rankdf.effect_size[1]))
         elif result.omnibus == 'wilcoxon':
             if len(not_normal) == 1:
                 notnormal_str = 'one of them is'
@@ -276,35 +281,35 @@ def create_report(result):
                   "determine the differences in the central tendency and report the median (MD) and the median "
                   "absolute deviation (MAD) for each population." % notnormal_str)
             if result.pvalue >= result.alpha:
-                print("We failed to reject the null hypothesis (p=%f) of Wilcoxon's signed rank test that "
+                print("We failed to reject the null hypothesis (p=%.*f) of Wilcoxon's signed rank test that "
                       "population %s is not greater than population %s . Therefore, we "
                       "assume that there is no statistically significant difference between the medians of the "
-                      "populations." % (result.pvalue,
+                      "populations." % (decimal_places, result.pvalue,
                                         create_population_string(result.rankdf.index[0], with_stats=True),
                                         create_population_string(result.rankdf.index[1], with_stats=True)))
             else:
-                print("We reject the null hypothesis (p=%f) of Wilcoxon's signed rank test that population "
+                print("We reject the null hypothesis (p=%.*f) of Wilcoxon's signed rank test that population "
                       "%s is not greater than population %s. Therefore, we assume "
                       "that the median of %s is "
-                      "significantly larger than the median value of %s with a %s effect size (delta=%f)."
-                      % (result.pvalue,
+                      "significantly larger than the median value of %s with a %s effect size (delta=%.*f)."
+                      % (decimal_places, result.pvalue,
                          create_population_string(result.rankdf.index[0], with_stats=True),
                          create_population_string(result.rankdf.index[1], with_stats=True),
                          result.rankdf.index[0], result.rankdf.index[1],
-                         result.rankdf.magnitude[1], result.rankdf.effect_size[1]))
+                         result.rankdf.magnitude[1], decimal_places, result.rankdf.effect_size[1]))
             pass
         else:
             raise ValueError('Unknown omnibus test for difference in the central tendency: %s' % result.omnibus)
     else:
         if result.all_normal:
             if result.homoscedastic:
-                print("We applied Bartlett's test for homogeneity and failed to reject the null hypothesis (alpha=%f) "
-                      "that the data is homoscedastic. Thus, we assume that our data is "
-                      "homoscedastic." % result.pval_homogeneity)
+                print("We applied Bartlett's test for homogeneity and failed to reject the null hypothesis "
+                      "(alpha=%.*f) that the data is homoscedastic. Thus, we assume that our data is "
+                      "homoscedastic." % (decimal_places, result.pval_homogeneity))
             else:
-                print("We applied Bartlett's test for homogeneity and reject the null hypothesis (alpha=%f) that the"
+                print("We applied Bartlett's test for homogeneity and reject the null hypothesis (alpha=%.*f) that the"
                       "data is homoscedastic. Thus, we assume that our data is "
-                      "heteroscedastic." % result.pval_homogeneity)
+                      "heteroscedastic." % (decimal_places, result.pval_homogeneity))
 
         if result.omnibus == 'anova':
             print("Because we have more than two populations and all populations are normal and homoscedastic, we use "
@@ -315,15 +320,17 @@ def create_report(result):
                   "(SD) for each population. Populations are significantly different if their confidence intervals "
                   "are not overlapping.")
             if result.pvalue >= result.alpha:
-                print("We failed to reject the null hypothesis (p=%f) of the repeated measures ANOVA that there is "
+                print("We failed to reject the null hypothesis (p=%.*f) of the repeated measures ANOVA that there is "
                       "a difference between the mean values of the populations %s. Therefore, we "
                       "assume that there is no statistically significant difference between the mean values of the "
-                      "populations." % (result.pvalue, create_population_string(result.rankdf.index, with_stats=True)))
+                      "populations." % (decimal_places, result.pvalue,
+                                        create_population_string(result.rankdf.index, with_stats=True)))
             else:
-                print("We reject the null hypothesis (p=%f) of the repeated measures ANOVA that there is "
+                print("We reject the null hypothesis (p=%.*f) of the repeated measures ANOVA that there is "
                       "a difference between the mean values of the populations %s. Therefore, we "
                       "assume that there is a statistically significant difference between the mean values of the "
-                      "populations." % (result.pvalue, create_population_string(result.rankdf.index, with_stats=True)))
+                      "populations." % (decimal_places, result.pvalue,
+                                        create_population_string(result.rankdf.index, with_stats=True)))
                 meanranks, names, groups = get_sorted_rank_groups(result, False)
                 if len(groups) == 0:
                     print("Based on post-hoc Tukey HSD test, we assume that all differences between the populations "
@@ -350,8 +357,8 @@ def create_report(result):
                       "of the populations. We use the post-hoc Nemenyi test to infer which differences are "
                       "significant. We report the mean value (M), the standard deviation (SD) and the mean rank (MR) "
                       "among all populations over the samples. Differences between populations are significant, if the "
-                      "difference of the mean rank is greater than the critical distance CD=%f of the Nemenyi "
-                      "test." % result.cd)
+                      "difference of the mean rank is greater than the critical distance CD=%.*f of the Nemenyi "
+                      "test." % (decimal_places, result.cd))
             else:
                 if len(not_normal) == 1:
                     notnormal_str = 'one of them is'
@@ -363,19 +370,19 @@ def create_report(result):
                       "of the populations. We use the post-hoc Nemenyi test to infer which differences are "
                       "significant. We report the median (MD), the median absolute deviation (MAD) and the mean rank "
                       "(MR) among all populations over the samples. Differences between populations are significant, "
-                      "if the difference of the mean rank is greater than the critical distance CD=%f of the Nemenyi "
-                      "test." % (notnormal_str, result.cd))
+                      "if the difference of the mean rank is greater than the critical distance CD=%.*f of the Nemenyi "
+                      "test." % (notnormal_str, decimal_places, result.cd))
             if result.pvalue >= result.alpha:
-                print("We failed to reject the null hypothesis (p=%f) of the Friedman test that there is no "
+                print("We failed to reject the null hypothesis (p=%.*f) of the Friedman test that there is no "
                       "difference in the central tendency of the populations %s. Therefore, we "
                       "assume that there is no statistically significant difference between the median values of the "
-                      "populations." % (result.pvalue,
+                      "populations." % (decimal_places, result.pvalue,
                                         create_population_string(result.rankdf.index, with_stats=True, with_rank=True)))
             else:
-                print("We reject the null hypothesis (p=%f) of the Friedman test that there is no "
+                print("We reject the null hypothesis (p=%.*f) of the Friedman test that there is no "
                       "difference in the central tendency of the populations %s. Therefore, we "
                       "assume that there is a statistically significant difference between the median values of the "
-                      "populations." % (result.pvalue,
+                      "populations." % (decimal_places, result.pvalue,
                                         create_population_string(result.rankdf.index, with_stats=True, with_rank=True)))
                 meanranks, names, groups = get_sorted_rank_groups(result, False)
                 if len(groups) == 0:
