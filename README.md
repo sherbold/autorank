@@ -1,11 +1,13 @@
 # Autorank
 
+[![Actions Status](https://github.com/sherbold/autorank/workflows/Build/badge.svg)](https://github.com/sherbold/autorank/actions)
+
 ## Summary
 
 Autorank is a simple Python package with one task: simplify the comparison between (multiple) paired populations. 
-The package basically implements Demsar's guidelines for the the comparison of classifiers. This package provides the single function 
-`autorank` which automatically determines suitable statistical tests, confidence intervals, etc. based on the normality and homogeneity of 
-the data. 
+The goal of Autorank is to simplify the statistical analysis for non-experts. The statistical approach of this package
+is based on the article 
+_Janez Demšar. 2006. Statistical Comparisons of Classifiers over Multiple Data Sets. J. Mach. Learn. Res. 7 (December 2006), 1–30_. 
 
 ## Installation
 
