@@ -19,6 +19,10 @@ Autorank is available on PyPi and can be installed using pip.
 pip install autorank
 ```
 
+## Documentation
+
+You can find the documentation of the current master of Autorank [online](https://sherbold.github.io/autorank).
+
 ## Description
 
 Autorank uses the following strategy for the statistical comparison of paired populations:
