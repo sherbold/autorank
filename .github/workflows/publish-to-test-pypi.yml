@@ -12,12 +12,16 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: 3.7
+    - name: Install dependencies
+      run: >-
+        python -m pip install .
+        python -m pip install codecov pytest-cov
+    - name: Run pytest
+      run: >-
+        pytest tests/ --cov=autorank/
     - name: Install setuptools
       run: >-
-        python -m
-        pip install
-        setuptools wheel
-        --user
+        python -m pip install setuptools wheel
     - name: Build a binary wheel and a source tarball
       run: >-
         python setup.py sdist bdist_wheel
