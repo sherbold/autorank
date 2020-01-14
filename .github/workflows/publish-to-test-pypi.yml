@@ -25,6 +25,9 @@ jobs:
     - name: Build a binary wheel and a source tarball
       run: >-
         python setup.py sdist bdist_wheel
+    - name: debug with ls
+      run: >-
+        ls -alt
     - name: Publish to codecov
       uses: codecov/codecov-action@v1
       with:
