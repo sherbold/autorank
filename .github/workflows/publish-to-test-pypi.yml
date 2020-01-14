@@ -25,8 +25,8 @@ jobs:
     - name: Build a binary wheel and a source tarball
       run: >-
         python setup.py sdist bdist_wheel
-    - name: Publish to codecov
-      uses: codecov/codecov-action@v1.0.5
+    - name: Publish to Coveralls
+      uses: coverallsapp/github-action@master
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
     - name: Publish distribution to PyPI
