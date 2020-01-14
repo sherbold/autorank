@@ -142,7 +142,7 @@ plt.show()
 
 For the above example, the following plot is created:
 
-![CD Diagram](example/cd_diagram.png)
+![CD Diagram](examples/cd_diagram.png)
 
 To further support reporting in scholarly article, Autorank can also generate a latex table with the relevant results. 
 ```python
@@ -171,7 +171,7 @@ pop\_0 & 5.400 & 0.130 & 0.192 &  [0.000, 0.349] &     0.919 &       large \\
 
 The rendered table looks like this (may change depending on the class of the document).
  
-![Table](example/table.png)
+![Table](examples/table.png)
 
 
 ## License
