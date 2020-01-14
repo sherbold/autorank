@@ -38,7 +38,7 @@ jobs:
         cp flowchart.png docs/
         pydocmd build
     - name: Publish documentation of master on gh-pages
-      uses: peaceiris/actions-gh-pages@v2
+      uses: peaceiris/actions-gh-pages@v2.3.1
       env:
         PERSONAL_TOKEN: ${{ secrets.ACTIONS_DEPLOY_KEY }}
         PUBLISH_BRANCH: gh-pages
