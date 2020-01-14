@@ -25,15 +25,10 @@ jobs:
     - name: Build a binary wheel and a source tarball
       run: >-
         python setup.py sdist bdist_wheel
-#    - name: Publish distribution to Test PyPI
-#      uses: pypa/gh-action-pypi-publish@master
-#      with:
-#        password: ${{ secrets.pypi_test_password }}
-#        repository_url: https://test.pypi.org/legacy/
     - name: Publish to codecov
-        uses: codecov/codecov-action@v1.0.5
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      uses: codecov/codecov-action@v1.0.5
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
     - name: Publish distribution to PyPI
       if: startsWith(github.event.ref, 'refs/tags')
       uses: pypa/gh-action-pypi-publish@master
