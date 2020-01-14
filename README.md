@@ -1,6 +1,8 @@
 # Autorank
 
 [![Actions Status](https://github.com/sherbold/autorank/workflows/Build/badge.svg)](https://github.com/sherbold/autorank/actions)
+[![codecov](https://codecov.io/gh/sherbold/autorank/branch/master/graph/badge.svg)](https://codecov.io/gh/sherbold/autorank)
+
 
 ## Summary
 
