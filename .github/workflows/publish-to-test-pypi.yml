@@ -40,7 +40,7 @@ jobs:
     - name: Publish documentation of master on gh-pages
       uses: peaceiris/actions-gh-pages@v2.3.1
       env:
-        PERSONAL_TOKEN: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+        ACTIONS_DEPLOY_KEY: ${{ secrets.ACTIONS_DEPLOY_KEY }}
         PUBLISH_BRANCH: gh-pages
         PUBLISH_DIR: _build/site
     - name: Publish distribution to PyPI
