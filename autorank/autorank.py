@@ -48,24 +48,61 @@ def autorank(data, alpha=0.05, verbose=False):
     - If there are more than two populations and at least one populations is not normal or the populations are
       heteroscedastic, we use Friedman's test with the Nemenyi post-hoc test.
 
-    :param data: Pandas DataFrame, where each column contains a population and each row contains the paired measurements
-    for the populations.
-    :param alpha: Significance level. We internally use correction to ensure that all results (incl. confidence
-    intervals) together fulfill this confidence level.
-    :param verbose: If true, details about the ranking are printed.
-    :return: A named tuple with the following entries:
-       - rankdf: Ranked populations including statistics about the populations
-       - pvalue: p-value of the omnibus test for the difference in central tendency between the populations
-       - omnibus: String with omnibus test that is used for the test of a difference ein the central tendency.
-       - posthoc: String with the posthoc tests that was used. The posthoc test is performed even if the omnibus test is
-         not significant. The results should only be used if the p-value of the omnibus test indicates significance.
-       - cd: The critical distance of the Nemenyi posthoc test, if it was used. Otherwise None.
-       - all_normal: True if all populations are normal
-       - pvals_shapiro: p-values of the Shapiro-Wilk tests for normality (sorted by the order of the input columns)
-       - homoscedastic: True if populations are homoscedastic
-       - pval_homogeneity: p-value of the test for homogeneity.
-       - homogeneity_test: Test used for homogeneity.
-       - alpha: Significance level that was used. Same as input.
+    Parameters
+    ----------
+    data: DataFrame
+        Each column contains a population and each row contains the paired measurements
+        for the populations.
+
+    alpha: float, default=0.05
+        Significance level. We internally use correction to ensure that all results (incl. confidence
+        intervals) together fulfill this confidence level.
+
+    verbose: bool, default=False
+        Prints decisions and p-values while running the autorank function to stdout.
+
+    Returns
+    -------
+    rankdf: DataFrame
+        Ranked populations including statistics about the populations.
+
+    pvalue: float
+        p-value of the omnibus test for the difference in central tendency between the populations.
+
+    omnibus: string
+       mnibus test that is used for the test of a difference ein the central tendency.
+
+    posthoc: string
+        Posthoc tests that was used. The posthoc test is performed even if the omnibus test is not significant. The
+        results should only be used if the p-value of the omnibus test indicates significance. None in case of two
+        populations.
+
+    cd: float
+        The critical distance of the Nemenyi posthoc test, if it was used. Otherwise None.
+
+    all_normal: bool
+        True if all populations are normal, false if at least one is not normal.
+
+    pvals_shapiro: list
+        p-values of the Shapiro-Wilk tests for normality sorted by the order of the input columns.
+
+    homoscedastic: bool
+        True if populations are homoscedastic, false otherwise.
+
+    pval_homogeneity: float
+        p-value of the test for homogeneity.
+
+    homogeneity_test: string
+        Test used for homogeneity. Either 'bartlet' or 'levene'.
+
+    alpha: float
+        Family-wise significant level. Same as input parameter.
+
+    alpha_normality: float
+        Corrected alpha that is used for tests for normality.
+
+    num_samples: int
+        Number of samples within each population.
     """
 
     # validate inputs
