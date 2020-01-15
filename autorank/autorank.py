@@ -48,60 +48,62 @@ def autorank(data, alpha=0.05, verbose=False):
     - If there are more than two populations and at least one populations is not normal or the populations are
       heteroscedastic, we use Friedman's test with the Nemenyi post-hoc test.
 
-    Parameters
-    ----------
-    data: DataFrame
+    # Parameters
+
+    data (DataFrame):
         Each column contains a population and each row contains the paired measurements
         for the populations.
 
-    alpha: float, default=0.05
+    alpha (float, default=0.05):
         Significance level. We internally use correction to ensure that all results (incl. confidence
         intervals) together fulfill this confidence level.
 
-    verbose: bool, default=False
+    verbose (bool, default=False):
         Prints decisions and p-values while running the autorank function to stdout.
 
-    Returns
-    -------
-    rankdf: DataFrame
+    # Returns
+
+    A named tuple of type RankResult with the following entries.
+
+    rankdf (DataFrame):
         Ranked populations including statistics about the populations.
 
-    pvalue: float
+    pvalue (float):
         p-value of the omnibus test for the difference in central tendency between the populations.
 
-    omnibus: string
+    omnibus (string):
        mnibus test that is used for the test of a difference ein the central tendency.
 
-    posthoc: string
+    posthoc (string):
         Posthoc tests that was used. The posthoc test is performed even if the omnibus test is not significant. The
         results should only be used if the p-value of the omnibus test indicates significance. None in case of two
         populations.
 
-    cd: float
+    cd (float):
         The critical distance of the Nemenyi posthoc test, if it was used. Otherwise None.
 
-    all_normal: bool
+    all_normal (bool):
         True if all populations are normal, false if at least one is not normal.
 
-    pvals_shapiro: list
+    pvals_shapiro (list):
         p-values of the Shapiro-Wilk tests for normality sorted by the order of the input columns.
 
-    homoscedastic: bool
+    homoscedastic (bool):
         True if populations are homoscedastic, false otherwise.
 
-    pval_homogeneity: float
+    pval_homogeneity (float):
         p-value of the test for homogeneity.
 
-    homogeneity_test: string
+    homogeneity_test (string):
         Test used for homogeneity. Either 'bartlet' or 'levene'.
 
-    alpha: float
+    alpha (float):
         Family-wise significant level. Same as input parameter.
 
-    alpha_normality: float
+    alpha_normality (float):
         Corrected alpha that is used for tests for normality.
 
-    num_samples: int
+    num_samples (int):
         Number of samples within each population.
     """
 
@@ -183,14 +185,25 @@ def plot_stats(result, *, allow_insignificant=False, ax=None, width=None):
     This function raises a ValueError if the omnibus test did not detect a significant difference. The allow_significant
     parameter allows the suppression of this exception and forces the creation of the plots.
 
-    :param result: Result must be of type RankResult and should be the outcome of calling the autorank function.
-    :param allow_insignificant: Forces plotting even if results are not significant. (Default: False)
-    :param ax:  Matplotlib axis to which the results are added. A new figure with a single axis is
-    created if None. (Default: None)
-    :param width: Specifies the width of the created plot is not None. By default, we use a width of 6. The height is
-    automatically determined, based on the type of plot and the number of populations. This parameter is ignored if ax
-    is not None. (Default: None)
-    :return: axis with the plot.
+    # Parameters
+
+    result (RankResult):
+        Should be the return value the autorank function.
+
+    allow_insignificant (bool, default=False):
+        Forces plotting even if results are not significant.
+
+    ax (Axis, default=None):
+        Matplotlib axis to which the results are added. A new figure with a single axis is created if None.
+
+    width (float, default=None):
+        Specifies the width of the created plot is not None. By default, we use a width of 6. The height is
+        automatically determined, based on the type of plot and the number of populations. This parameter is ignored if
+        ax is not None.
+
+    # Return
+
+    Axis with the plot.
     """
     if not isinstance(result, RankResult):
         raise TypeError("result must be of type RankResult and should be the outcome of calling the autorank function.")
@@ -219,9 +232,14 @@ def plot_stats(result, *, allow_insignificant=False, ax=None, width=None):
 def create_report(result, *, decimal_places=3):
     """
     Prints a report about the statistical analysis. 
-    
-    :param result: Result must be of type RankResult and should be the outcome of calling the autorank function.
-    :param decimal_places: Number of decimal places that are used for the report.
+
+    # Parameters
+
+    result (RankResult):
+        Should be the return value the autorank function.
+
+    decimal_places (int, default=3):
+        Number of decimal places that are used for the report.
     """
 
     # TODO add effect sizes to multiple comparisons.
@@ -448,9 +466,16 @@ def latex_table(result, *, decimal_places=3, label=None):
     """
     Creates a latex table from the results dataframe of the statistical analysis.
 
-    :param result: Result must be of type RankResult and should be the outcome of calling the autorank function.
-    :param decimal_places: Number of decimal places that are used for the report.
-    :param label: label for the table
+    # Parameters
+
+    result (RankResult):
+        Should be the return value the autorank function.
+
+    decimal_places (int, default=3):
+        Number of decimal places that are used for the report.
+
+    label (str, default=None):
+        Label of the table. Defaults to 'tbl:stat_results' if None.
     """
     if label is None:
         label = 'tbl:stat_results'
@@ -496,12 +521,25 @@ def latex_report(result, *, decimal_places=3, prefix="", generate_plots=True, fi
     """
     Creates a latex report of the statistical analysis.
 
-    :param result: Result must be of type RankResult and should be the outcome of calling the autorank function.
-    :param decimal_places: Number of decimal places that are used for the report.
-    :param prefix: Prefix that is added before all labels and plot file names.
-    :param generate_plots: Decides if plots are generated, if the results are statistically significant.
-    :param figure_path: Path where the plots shall be written to. Ignored if generate_plots is False.
-    :param complete_document: Generates a complete latex document is true. Otherwise only a single section is generated.
+    # Parameters
+
+    result (AutoRank):
+        Should be the return value the autorank function.
+
+    decimal_places (int, default=3):
+        Number of decimal places that are used for the report.
+
+    prefix (str, default=""):
+        Prefix that is added before all labels and plot file names.
+
+    generate_plots (bool, default=True):
+        Decides if plots are generated, if the results are statistically significant.
+
+    figure_path (str, default=""):
+        Path where the plots shall be written to. Ignored if generate_plots is False.
+
+    complete_document (bool, default=True):
+        Generates a complete latex document if true. Otherwise only a single section is generated.
     """
     if not isinstance(result, RankResult):
         raise TypeError("result must be of type RankResult and should be the outcome of calling the autorank function.")
