@@ -58,12 +58,6 @@
     <a class="current" href="./">autorank</a>
     <ul class="subnav">
             
-    <li class="toctree-l2"><a href="#parameters">Parameters</a></li>
-    
-
-    <li class="toctree-l2"><a href="#returns">Returns</a></li>
-    
-
     </ul>
 	    </li>
           
@@ -139,43 +133,52 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
   ANOVA with Tukey's HSD as post-hoc test.
 - If there are more than two populations and at least one populations is not normal or the populations are
   heteroscedastic, we use Friedman's test with the Nemenyi post-hoc test.</p>
-<h2 id="parameters">Parameters</h2>
-<p>data: DataFrame
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong>data (DataFrame)</strong>:
     Each column contains a population and each row contains the paired measurements
     for the populations.</p>
-<p>alpha: float, default=0.05
+</li>
+<li>
+<p><strong>alpha (float, default=0.05)</strong>:
     Significance level. We internally use correction to ensure that all results (incl. confidence
     intervals) together fulfill this confidence level.</p>
-<p>verbose: bool, default=False
+</li>
+<li>
+<p><strong>verbose (bool, default=False)</strong>:
     Prints decisions and p-values while running the autorank function to stdout.</p>
-<h2 id="returns">Returns</h2>
-<p>rankdf: DataFrame
+</li>
+</ul>
+<p><strong>Returns</strong></p>
+<p>A named tuple of type RankResult with the following entries.</p>
+<p><code>rankdf (DataFrame)</code>:
     Ranked populations including statistics about the populations.</p>
-<p>pvalue: float
+<p><code>pvalue (float)</code>:
     p-value of the omnibus test for the difference in central tendency between the populations.</p>
-<p>omnibus: string
+<p><code>omnibus (string)</code>:
    mnibus test that is used for the test of a difference ein the central tendency.</p>
-<p>posthoc: string
+<p><code>posthoc (string)</code>:
     Posthoc tests that was used. The posthoc test is performed even if the omnibus test is not significant. The
     results should only be used if the p-value of the omnibus test indicates significance. None in case of two
     populations.</p>
-<p>cd: float
+<p><code>cd (float)</code>:
     The critical distance of the Nemenyi posthoc test, if it was used. Otherwise None.</p>
-<p>all_normal: bool
+<p><code>all_normal (bool)</code>:
     True if all populations are normal, false if at least one is not normal.</p>
-<p>pvals_shapiro: list
+<p><code>pvals_shapiro (list)</code>:
     p-values of the Shapiro-Wilk tests for normality sorted by the order of the input columns.</p>
-<p>homoscedastic: bool
+<p><code>homoscedastic (bool)</code>:
     True if populations are homoscedastic, false otherwise.</p>
-<p>pval_homogeneity: float
+<p><code>pval_homogeneity (float)</code>:
     p-value of the test for homogeneity.</p>
-<p>homogeneity_test: string
+<p><code>homogeneity_test (string)</code>:
     Test used for homogeneity. Either 'bartlet' or 'levene'.</p>
-<p>alpha: float
+<p><code>alpha (float)</code>:
     Family-wise significant level. Same as input parameter.</p>
-<p>alpha_normality: float
+<p><code>alpha_normality (float)</code>:
     Corrected alpha that is used for tests for normality.</p>
-<p>num_samples: int
+<p><code>num_samples (int)</code>:
     Number of samples within each population.</p>
 <h2 id="autorank.autorank.plot_stats">plot_stats</h2>
 
@@ -192,43 +195,100 @@ statistical test that was used.
  populations. Populations that are not significantly different are connected by a horizontal bar.</p>
 <p>This function raises a ValueError if the omnibus test did not detect a significant difference. The allow_significant
 parameter allows the suppression of this exception and forces the creation of the plots.</p>
-<p>:param result: Result must be of type RankResult and should be the outcome of calling the autorank function.
-:param allow_insignificant: Forces plotting even if results are not significant. (Default: False)
-:param ax:  Matplotlib axis to which the results are added. A new figure with a single axis is
-created if None. (Default: None)
-:param width: Specifies the width of the created plot is not None. By default, we use a width of 6. The height is
-automatically determined, based on the type of plot and the number of populations. This parameter is ignored if ax
-is not None. (Default: None)
-:return: axis with the plot.</p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong>result (RankResult)</strong>:
+    Should be the return value the autorank function.</p>
+</li>
+<li>
+<p><strong>allow_insignificant (bool, default=False)</strong>:
+    Forces plotting even if results are not significant.</p>
+</li>
+<li>
+<p><strong>ax (Axis, default=None)</strong>:
+    Matplotlib axis to which the results are added. A new figure with a single axis is created if None.</p>
+</li>
+<li>
+<p><strong>width (float, default=None)</strong>:
+    Specifies the width of the created plot is not None. By default, we use a width of 6. The height is
+    automatically determined, based on the type of plot and the number of populations. This parameter is ignored if
+    ax is not None.</p>
+</li>
+</ul>
+<p><strong>Return</strong></p>
+<p>Axis with the plot.</p>
 <h2 id="autorank.autorank.create_report">create_report</h2>
 
 <pre><code class="python">create_report(result, *, decimal_places=3)
 </code></pre>
 
 <p>Prints a report about the statistical analysis.</p>
-<p>:param result: Result must be of type RankResult and should be the outcome of calling the autorank function.
-:param decimal_places: Number of decimal places that are used for the report.</p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong>result (RankResult)</strong>:
+    Should be the return value the autorank function.</p>
+</li>
+<li>
+<p><strong>decimal_places (int, default=3)</strong>:
+    Number of decimal places that are used for the report.</p>
+</li>
+</ul>
 <h2 id="autorank.autorank.latex_table">latex_table</h2>
 
 <pre><code class="python">latex_table(result, *, decimal_places=3, label=None)
 </code></pre>
 
 <p>Creates a latex table from the results dataframe of the statistical analysis.</p>
-<p>:param result: Result must be of type RankResult and should be the outcome of calling the autorank function.
-:param decimal_places: Number of decimal places that are used for the report.
-:param label: label for the table</p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong>result (RankResult)</strong>:
+    Should be the return value the autorank function.</p>
+</li>
+<li>
+<p><strong>decimal_places (int, default=3)</strong>:
+    Number of decimal places that are used for the report.</p>
+</li>
+<li>
+<p><strong>label (str, default=None)</strong>:</p>
+</li>
+<li><strong>Label of the table. Defaults to 'tbl</strong>:stat_results' if None.</li>
+</ul>
 <h2 id="autorank.autorank.latex_report">latex_report</h2>
 
 <pre><code class="python">latex_report(result, *, decimal_places=3, prefix='', generate_plots=True, figure_path='', complete_document=True)
 </code></pre>
 
 <p>Creates a latex report of the statistical analysis.</p>
-<p>:param result: Result must be of type RankResult and should be the outcome of calling the autorank function.
-:param decimal_places: Number of decimal places that are used for the report.
-:param prefix: Prefix that is added before all labels and plot file names.
-:param generate_plots: Decides if plots are generated, if the results are statistically significant.
-:param figure_path: Path where the plots shall be written to. Ignored if generate_plots is False.
-:param complete_document: Generates a complete latex document is true. Otherwise only a single section is generated.</p>
+<p><strong>Parameters</strong></p>
+<ul>
+<li>
+<p><strong>result (AutoRank)</strong>:
+    Should be the return value the autorank function.</p>
+</li>
+<li>
+<p><strong>decimal_places (int, default=3)</strong>:
+    Number of decimal places that are used for the report.</p>
+</li>
+<li>
+<p><strong>prefix (str, default="")</strong>:
+    Prefix that is added before all labels and plot file names.</p>
+</li>
+<li>
+<p><strong>generate_plots (bool, default=True)</strong>:
+    Decides if plots are generated, if the results are statistically significant.</p>
+</li>
+<li>
+<p><strong>figure_path (str, default="")</strong>:
+    Path where the plots shall be written to. Ignored if generate_plots is False.</p>
+</li>
+<li>
+<p><strong>complete_document (bool, default=True)</strong>:
+    Generates a complete latex document if true. Otherwise only a single section is generated.</p>
+</li>
+</ul>
               
             </div>
           </div>
