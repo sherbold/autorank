@@ -67,6 +67,8 @@
         
             <li><a class="toctree-l3" href="#usage-example">Usage Example</a></li>
         
+            <li><a class="toctree-l3" href="#contributing">Contributing</a></li>
+        
             <li><a class="toctree-l3" href="#license">License</a></li>
         
         </ul>
@@ -116,10 +118,26 @@
 <p><a href="https://github.com/sherbold/autorank/actions"><img alt="Actions Status" src="https://github.com/sherbold/autorank/workflows/Build/badge.svg" /></a>
 <a href="https://codecov.io/gh/sherbold/autorank"><img alt="codecov" src="https://codecov.io/gh/sherbold/autorank/branch/master/graph/badge.svg" /></a></p>
 <h2 id="summary">Summary</h2>
-<p>Autorank is a simple Python package with one task: simplify the comparison between (multiple) paired populations. 
-The goal of Autorank is to simplify the statistical analysis for non-experts. The statistical approach of this package
-is based on the article 
-<em>Janez Demšar. 2006. Statistical Comparisons of Classifiers over Multiple Data Sets. J. Mach. Learn. Res. 7 (December 2006), 1–30</em>. </p>
+<p>Autorank is a simple Python package with one task: simplify the comparison between (multiple) paired populations. This
+is, for example, required if the performance different machine learning algorithms or simulations should be compared on
+multiple data sets. The performance measures on each data set are then the paired samples, the difference in the central
+tendency (e.g., the mean or median) can be used to rank the different algorithms. This problem is not new and how such
+tests could be done was already descibed in 2006  in the well-known article <em>Janez Demšar. 2006. Statistical Comparisons
+of Classifiers over Multiple Data Sets. J. Mach. Learn. Res. 7 (December 2006), 1–30</em>. </p>
+<p>Regardless, the correct use of Demšar guidelines is hard for non-experts in statistics. Correct use of the guidelines
+requires the decision of whether a paired t-test, a Wilcoxon's rank sum test, repeated measures ANOVA with Tukey's HSD 
+as post-hoc test, or Friedman's tests and Nemenyi's post-hoc test to determine an answer to the question if there are
+differences. For this, the distribution of the populations must be analyzed with the Shapiro-Wilk test for normality
+and, depending on the normality with Levene's test or Bartlett's tests for homogeneity of the data. All this is already
+quite complex. This does not yet account for the adjustment of the significance level in case of repeated tests to
+achieve the desired family-wise significance. Additionally, not only the tests should be conducted, but good reporting
+of the results also include confidence intervals, effect sizes, and the decision of whether it is appropriate to report
+the mean value and standard deviation, or whether the median value and the median absolute deviation is more
+appropriate.   </p>
+<p>The goal of Autorank is to simplify the statistical analysis for non-experts. Autorank takes care of all of the above
+with a single function call. Additional functions allow the generation of apprprioate plots, result tables, and even of
+a complete latex document. All that is required is the data about the populations is in a 
+<a href="https://pandas.pydata.org/">Pandas</a> dataframe.   </p>
 <h2 id="installation">Installation</h2>
 <p>Autorank is available on PyPi and can be installed using pip.</p>
 <pre><code>pip install autorank
@@ -128,6 +146,8 @@ is based on the article
 <h2 id="documentation">Documentation</h2>
 <p>You can find the documentation of the current master of Autorank <a href="https://sherbold.github.io/autorank">online</a>.</p>
 <h2 id="description">Description</h2>
+<p>The following flow chart summarizes the decisions made by Autorank.</p>
+<p><img alt="CD Diagram" src="flowchart.png" /></p>
 <p>Autorank uses the following strategy for the statistical comparison of paired populations:
 - First all populations are checked with the Shapiro-Wilk test for normality. We use Bonferoni correction for these
   tests, i.e., alpha/#populations.
@@ -156,8 +176,6 @@ repeated measures ANOVA and Tukey's HSD test (including the calculation of the c
 <a href="statsmodels">statsmodels</a>. We use own implementations for the calculation of critical distance of the Nemenyi test,
 the calculation of the effect sizes, and the calculation of the confidence intervals (with the exception of Tukey's
 HSD).</p>
-<p>The following flow chart summarizes the decisions made by Autorank.</p>
-<p><img alt="CD Diagram" src="flowchart.png" /></p>
 <h2 id="usage-example">Usage Example</h2>
 <p>The following example shows the usage of <code>autorank</code>. First, we import the functions from autorank and create some data. </p>
 <pre><code class="python">import numpy as np
@@ -263,6 +281,12 @@ pop\_0 &amp; 5.400 &amp; 0.130 &amp; 0.192 &amp;  [0.000, 0.349] &amp;     0.919
 
 <p>The rendered table looks like this (may change depending on the class of the document).</p>
 <p><img alt="Table" src="examples/table.png" /></p>
+<h2 id="contributing">Contributing</h2>
+<p>Contributions to Autorank are welcome.
+- Just file an <a href="">Issue</a> to ask questions, report bugs, or request new features. 
+- Pull requests via GitHub are also welcome.</p>
+<p>Potential contributions include more detailed report generation or the extension of Autorank to more types of data,
+e.g., independent populations, or paired populations with unequal sample sizes.   </p>
 <h2 id="license">License</h2>
 <p>Autorank is published under the Apache 2.0 Licence.</p>
               
@@ -313,5 +337,5 @@ pop\_0 &amp; 5.400 &amp; 0.130 &amp; 0.192 &amp;  [0.000, 0.349] &amp;     0.919
 
 <!--
 MkDocs version : 1.0.4
-Build Date UTC : 2020-01-15 20:36:01
+Build Date UTC : 2020-01-16 20:13:33
 -->
