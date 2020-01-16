@@ -6,10 +6,29 @@
 
 ## Summary
 
-Autorank is a simple Python package with one task: simplify the comparison between (multiple) paired populations. 
-The goal of Autorank is to simplify the statistical analysis for non-experts. The statistical approach of this package
-is based on the article 
-_Janez Demšar. 2006. Statistical Comparisons of Classifiers over Multiple Data Sets. J. Mach. Learn. Res. 7 (December 2006), 1–30_. 
+Autorank is a simple Python package with one task: simplify the comparison between (multiple) paired populations. This
+is, for example, required if the performance different machine learning algorithms or simulations should be compared on
+multiple data sets. The performance measures on each data set are then the paired samples, the difference in the central
+tendency (e.g., the mean or median) can be used to rank the different algorithms. This problem is not new and how such
+tests could be done was already descibed in 2006  in the well-known article _Janez Demšar. 2006. Statistical Comparisons
+of Classifiers over Multiple Data Sets. J. Mach. Learn. Res. 7 (December 2006), 1–30_. 
+
+Regardless, the correct use of Demšar guidelines is hard for non-experts in statistics. Correct use of the guidelines
+requires the decision of whether a paired t-test, a Wilcoxon's rank sum test, repeated measures ANOVA with Tukey's HSD 
+as post-hoc test, or Friedman's tests and Nemenyi's post-hoc test to determine an answer to the question if there are
+differences. For this, the distribution of the populations must be analyzed with the Shapiro-Wilk test for normality
+and, depending on the normality with Levene's test or Bartlett's tests for homogeneity of the data. All this is already
+quite complex. This does not yet account for the adjustment of the significance level in case of repeated tests to
+achieve the desired family-wise significance. Additionally, not only the tests should be conducted, but good reporting
+of the results also include confidence intervals, effect sizes, and the decision of whether it is appropriate to report
+the mean value and standard deviation, or whether the median value and the median absolute deviation is more
+appropriate.   
+
+The goal of Autorank is to simplify the statistical analysis for non-experts. Autorank takes care of all of the above
+with a single function call. Additional functions allow the generation of apprprioate plots, result tables, and even of
+a complete latex document. All that is required is the data about the populations is in a 
+[Pandas](https://pandas.pydata.org/) dataframe.   
+
 
 ## Installation
 
@@ -24,6 +43,10 @@ pip install autorank
 You can find the documentation of the current master of Autorank [online](https://sherbold.github.io/autorank).
 
 ## Description
+
+The following flow chart summarizes the decisions made by Autorank.
+ 
+![CD Diagram](flowchart.png)
 
 Autorank uses the following strategy for the statistical comparison of paired populations:
 - First all populations are checked with the Shapiro-Wilk test for normality. We use Bonferoni correction for these
@@ -58,9 +81,6 @@ repeated measures ANOVA and Tukey's HSD test (including the calculation of the c
 the calculation of the effect sizes, and the calculation of the confidence intervals (with the exception of Tukey's
 HSD).
 
-The following flow chart summarizes the decisions made by Autorank.
- 
-![CD Diagram](flowchart.png)
   
 ## Usage Example
 
@@ -176,6 +196,15 @@ pop\_0 & 5.400 & 0.130 & 0.192 &  [0.000, 0.349] &     0.919 &       large \\
 The rendered table looks like this (may change depending on the class of the document).
  
 ![Table](examples/table.png)
+
+## Contributing
+
+Contributions to Autorank are welcome.
+- Just file an [Issue]() to ask questions, report bugs, or request new features. 
+- Pull requests via GitHub are also welcome.
+
+Potential contributions include more detailed report generation or the extension of Autorank to more types of data,
+e.g., independent populations, or paired populations with unequal sample sizes.   
 
 
 ## License
