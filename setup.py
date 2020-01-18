@@ -1,13 +1,22 @@
 #!/usr/bin/env python
 
 from setuptools import setup, find_packages
+from os import path
 
 import autorank
+
+# read the contents of your README file
+
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
 setup(
     name='autorank',
     version=autorank.__version__,
     description='Automated ranking of populations in a repeated measures experiment, e.g., to rank different machine learning approaches tested on the same data.',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     install_requires=['numpy', 'pandas', 'statsmodels', 'scipy', 'matplotlib'],
     author='sherbold',
     author_email='herbold@cs.uni.goettingen.de',
