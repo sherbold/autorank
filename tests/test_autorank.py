@@ -1,6 +1,8 @@
 import unittest
+import tempfile
 import numpy as np
 import pandas as pd
+
 
 from autorank.autorank import *
 
@@ -13,11 +15,13 @@ class TestAutorank(unittest.TestCase):
         print("In method", self._testMethodName)
         print('-------------------------------')
         self.sample_size = 50
-        self.verbose = False
+        self.verbose = True
         np.random.seed(42)
+        self.tmp_dir = tempfile.TemporaryDirectory()
 
     def tearDown(self) -> None:
         print('-------------------------------')
+        self.tmp_dir.cleanup()
 
     # Uncomment to view created plots
 #    @classmethod
@@ -39,7 +43,8 @@ class TestAutorank(unittest.TestCase):
         plt.draw()
         create_report(res)
         print("----BEGIN LATEX----")
-        latex_report(res, generate_plots=False)
+        print(self.tmp_dir)
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
 
     def test_autorank_normal_homoscedactic_two_no_difference(self):
@@ -61,7 +66,7 @@ class TestAutorank(unittest.TestCase):
         plot_stats(res, allow_insignificant=True)
         create_report(res)
         print("----BEGIN LATEX----")
-        latex_report(res, generate_plots=False)
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
 
     def test_autorank_nonnormal_homoscedactic_two(self):
@@ -77,7 +82,7 @@ class TestAutorank(unittest.TestCase):
         self.assertTrue(res.pvalue<res.alpha)
         create_report(res)
         print("----BEGIN LATEX----")
-        latex_report(res, generate_plots=False)
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
 
     def test_autorank_nonnormal_homoscedactic_two_no_difference(self):
@@ -99,7 +104,7 @@ class TestAutorank(unittest.TestCase):
         plot_stats(res, allow_insignificant=True)
         create_report(res)
         print("----BEGIN LATEX----")
-        latex_report(res, generate_plots=False)
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
 
     def test_autorank_normal_homsocedactic(self):
@@ -118,7 +123,7 @@ class TestAutorank(unittest.TestCase):
         plt.draw()
         create_report(res)
         print("----BEGIN LATEX----")
-        latex_report(res, generate_plots=False)
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
 
     def test_autorank_normal_homsocedactic_no_difference(self):
@@ -141,7 +146,7 @@ class TestAutorank(unittest.TestCase):
         plot_stats(res, allow_insignificant=True)
         create_report(res)
         print("----BEGIN LATEX----")
-        latex_report(res, generate_plots=False)
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
 
     def test_autorank_normal_heteroscedactic(self):
@@ -160,7 +165,7 @@ class TestAutorank(unittest.TestCase):
         plt.draw()
         create_report(res)
         print("----BEGIN LATEX----")
-        latex_report(res, generate_plots=False)
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
 
     def test_autorank_normal_heteroscedactic_no_difference(self):
@@ -183,7 +188,7 @@ class TestAutorank(unittest.TestCase):
         plot_stats(res, allow_insignificant=True)
         create_report(res)
         print("----BEGIN LATEX----")
-        latex_report(res, generate_plots=False)
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
 
     def test_autorank_nonnormal_homoscedactic(self):
@@ -202,7 +207,7 @@ class TestAutorank(unittest.TestCase):
         plt.draw()
         create_report(res)
         print("----BEGIN LATEX----")
-        latex_report(res, generate_plots=False)
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
 
     def test_autorank_nonnormal_homoscedactic_no_difference(self):
@@ -225,7 +230,7 @@ class TestAutorank(unittest.TestCase):
         plot_stats(res, allow_insignificant=True)
         create_report(res)
         print("----BEGIN LATEX----")
-        latex_report(res, generate_plots=False)
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
 
     def test_autorank_nonnormal_heteroscedactic(self):
@@ -244,7 +249,7 @@ class TestAutorank(unittest.TestCase):
         plt.draw()
         create_report(res)
         print("----BEGIN LATEX----")
-        latex_report(res, generate_plots=False)
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
 
     def test_autorank_nonnormal_heteroscedactic_no_difference(self):
@@ -267,5 +272,33 @@ class TestAutorank(unittest.TestCase):
         plot_stats(res, allow_insignificant=True)
         create_report(res)
         print("----BEGIN LATEX----")
-        latex_report(res, generate_plots=False)
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
+
+    def test_autorank_invalid(self):
+        self.assertRaises(TypeError, autorank,
+                          data="foo")
+        self.assertRaises(ValueError, autorank,
+                          data=pd.DataFrame(data=[[1], [2], [3], [4], [5], [6]]))
+        self.assertRaises(ValueError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8]]))
+        self.assertRaises(TypeError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
+                          alpha="foo")
+        self.assertRaises(ValueError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
+                          alpha=1.1)
+        self.assertRaises(ValueError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
+                          alpha=-0.05)
+        self.assertRaises(TypeError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
+                          verbose="foo")
+
+    def test_plot_stats_invalid(self):
+        self.assertRaises(TypeError, plot_stats,
+                          result="foo")
+
+    def test_create_report_invalid(self):
+        self.assertRaises(TypeError, create_report,
+                          result="foo")

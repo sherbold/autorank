@@ -203,7 +203,7 @@ def plot_stats(result, *, allow_insignificant=False, ax=None, width=None):
 
     # Return
 
-    Axis with the plot.
+    Axis with the plot. None if no plot was generated.
     """
     if not isinstance(result, RankResult):
         raise TypeError("result must be of type RankResult and should be the outcome of calling the autorank function.")
@@ -280,6 +280,9 @@ def create_report(result, *, decimal_places=3):
         else:
             popstr = ", ".join(population_strings[:-1]) + ", and " + population_strings[-1]
         return popstr
+
+    if not isinstance(result, RankResult):
+        raise TypeError("result must be of type RankResult and should be the outcome of calling the autorank function.")
 
     print("The statistical analysis was conducted for %i populations with %i paired samples." % (len(result.rankdf),
                                                                                                  result.num_samples))
@@ -573,13 +576,13 @@ def latex_report(result, *, decimal_places=3, prefix="", generate_plots=True, fi
         latex_table(result, decimal_places=decimal_places, label='tbl:%sstat_results' % prefix)
         print()
 
-    if generate_plots and result.pvalue < result.alpha and result.omnibus == 'wilcoxon':
+    if generate_plots and result.pvalue < result.alpha and result.omnibus != 'wilcoxon':
         # only include plots if the results are significant
         plot_stats(result)
         if len(figure_path) > 0 and not figure_path.endswith("/"):
             figure_path += '/'
         figure_path = "%s%sstat_results.pdf" % (figure_path, prefix)
-        plt.savefig()
+        plt.savefig(figure_path)
 
         print(r"\begin{figure}[h]")
         print(r"\includegraphics[]{%s}" % figure_path)
