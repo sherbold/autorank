@@ -9,7 +9,7 @@ jobs:
       matrix:
         os: [ubuntu-18.04, macOS-latest, windows-latest]
         python: ['3.5.x', '3.6.x', '3.7.x', '3.8.x']
-    runs-on: ${{ matrix.is }}
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@master
     - name: Set up Python ${{ matrix.python }}
