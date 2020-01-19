@@ -357,7 +357,6 @@ def create_report(result, *, decimal_places=3):
                          create_population_string(result.rankdf.index[1], with_stats=True),
                          result.rankdf.index[0], result.rankdf.index[1],
                          result.rankdf.magnitude[1], decimal_places, result.rankdf.effect_size[1]))
-            pass
         else:
             raise ValueError('Unknown omnibus test for difference in the central tendency: %s' % result.omnibus)
     else:
