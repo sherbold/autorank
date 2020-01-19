@@ -9,6 +9,12 @@ from statsmodels.stats.multicomp import MultiComparison
 from statsmodels.stats.anova import AnovaRM
 from collections import namedtuple
 
+__all__ = ['rank_two', 'rank_multiple_normal_homoscedastic', 'RankResult', 'rank_multiple_nonparametric',
+           'cd_diagram', 'get_sorted_rank_groups', 'ci_plot']
+
+RankResult = namedtuple('RankResult', (
+    'rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc', 'all_normal', 'pvals_shapiro', 'homoscedastic', 'pval_homogeneity',
+    'homogeneity_test', 'alpha', 'alpha_normality', 'num_samples'))
 
 def _cohen_d(x, y):
     """

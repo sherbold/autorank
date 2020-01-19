@@ -6,13 +6,13 @@ Guidelines for the comparison of multiple classifiers. Details can be found in t
 import warnings
 import sys
 
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from scipy import stats
 from io import StringIO
 from autorank._util import *
 
-
-RankResult = namedtuple('RankResult', (
-    'rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc', 'all_normal', 'pvals_shapiro', 'homoscedastic', 'pval_homogeneity',
-    'homogeneity_test', 'alpha', 'alpha_normality', 'num_samples'))
 
 
 def autorank(data, alpha=0.05, verbose=False):
