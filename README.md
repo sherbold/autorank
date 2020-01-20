@@ -2,7 +2,8 @@
 
 [![Actions Status](https://github.com/sherbold/autorank/workflows/Build/badge.svg)](https://github.com/sherbold/autorank/actions)
 [![codecov](https://codecov.io/gh/sherbold/autorank/branch/master/graph/badge.svg)](https://codecov.io/gh/sherbold/autorank)
-
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/sherbold/autorank.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sherbold/autorank/alerts/)
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/sherbold/autorank.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sherbold/autorank/context:python)
 
 ## Summary
 
