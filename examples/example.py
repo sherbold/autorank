@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from autorank.autorank import autorank, create_report, plot_stats, latex_table
+from autorank import autorank, create_report, plot_stats, latex_table
 
 np.random.seed(42)
 pd.set_option('display.max_columns', 7)

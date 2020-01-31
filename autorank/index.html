@@ -93,11 +93,7 @@
           <div role="main">
             <div class="section">
               
-                <h1 id="autorank.autorank">autorank.autorank</h1>
-
-<p>Automated ranking of populations for ranking them. This is basically an implementation of Demsar's
-Guidelines for the comparison of multiple classifiers. Details can be found in the description of the autorank function.</p>
-<h2 id="autorank.autorank.autorank">autorank</h2>
+                <h1 id="autorank.autorank">autorank</h1>
 
 <pre><code class="python">autorank(data, alpha=0.05, verbose=False)
 </code></pre>
@@ -175,115 +171,6 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
     Corrected alpha that is used for tests for normality.</p>
 <p><code>num_samples (int)</code>:
     Number of samples within each population.</p>
-<h2 id="autorank.autorank.plot_stats">plot_stats</h2>
-
-<pre><code class="python">plot_stats(result, *, allow_insignificant=False, ax=None, width=None)
-</code></pre>
-
-<p>Creates a plot that supports the analysis of the results of the statistical test. The plot depends on the
-statistical test that was used.
-- Creates a Confidence Interval (CI) plot for a paired t-test between two normal populations. The confidence
- intervals are calculated with Bonferoni correction, i.e., a confidence level of alpha/2.
-- Creates a CI plot for Tukey's HSD as post-hoc test with the confidence intervals calculated using the HSD approach
- such that the family wise significance is alpha.
-- Creates Critical Distance (CD) diagrams for the Nemenyi post-hoc test. CD diagrams visualize the mean ranks of
- populations. Populations that are not significantly different are connected by a horizontal bar.</p>
-<p>This function raises a ValueError if the omnibus test did not detect a significant difference. The allow_significant
-parameter allows the suppression of this exception and forces the creation of the plots.</p>
-<p><strong>Parameters</strong></p>
-<ul>
-<li>
-<p><strong>result (RankResult)</strong>:
-    Should be the return value the autorank function.</p>
-</li>
-<li>
-<p><strong>allow_insignificant (bool, default=False)</strong>:
-    Forces plotting even if results are not significant.</p>
-</li>
-<li>
-<p><strong>ax (Axis, default=None)</strong>:
-    Matplotlib axis to which the results are added. A new figure with a single axis is created if None.</p>
-</li>
-<li>
-<p><strong>width (float, default=None)</strong>:
-    Specifies the width of the created plot is not None. By default, we use a width of 6. The height is
-    automatically determined, based on the type of plot and the number of populations. This parameter is ignored if
-    ax is not None.</p>
-</li>
-</ul>
-<p><strong>Return</strong></p>
-<p>Axis with the plot. None if no plot was generated.</p>
-<h2 id="autorank.autorank.create_report">create_report</h2>
-
-<pre><code class="python">create_report(result, *, decimal_places=3)
-</code></pre>
-
-<p>Prints a report about the statistical analysis.</p>
-<p><strong>Parameters</strong></p>
-<ul>
-<li>
-<p><strong>result (RankResult)</strong>:
-    Should be the return value the autorank function.</p>
-</li>
-<li>
-<p><strong>decimal_places (int, default=3)</strong>:
-    Number of decimal places that are used for the report.</p>
-</li>
-</ul>
-<h2 id="autorank.autorank.latex_table">latex_table</h2>
-
-<pre><code class="python">latex_table(result, *, decimal_places=3, label=None)
-</code></pre>
-
-<p>Creates a latex table from the results dataframe of the statistical analysis.</p>
-<p><strong>Parameters</strong></p>
-<ul>
-<li>
-<p><strong>result (RankResult)</strong>:
-    Should be the return value the autorank function.</p>
-</li>
-<li>
-<p><strong>decimal_places (int, default=3)</strong>:
-    Number of decimal places that are used for the report.</p>
-</li>
-<li>
-<p><strong>label (str, default=None)</strong>:</p>
-</li>
-<li><strong>Label of the table. Defaults to 'tbl</strong>:stat_results' if None.</li>
-</ul>
-<h2 id="autorank.autorank.latex_report">latex_report</h2>
-
-<pre><code class="python">latex_report(result, *, decimal_places=3, prefix='', generate_plots=True, figure_path='', complete_document=True)
-</code></pre>
-
-<p>Creates a latex report of the statistical analysis.</p>
-<p><strong>Parameters</strong></p>
-<ul>
-<li>
-<p><strong>result (AutoRank)</strong>:
-    Should be the return value the autorank function.</p>
-</li>
-<li>
-<p><strong>decimal_places (int, default=3)</strong>:
-    Number of decimal places that are used for the report.</p>
-</li>
-<li>
-<p><strong>prefix (str, default="")</strong>:
-    Prefix that is added before all labels and plot file names.</p>
-</li>
-<li>
-<p><strong>generate_plots (bool, default=True)</strong>:
-    Decides if plots are generated, if the results are statistically significant.</p>
-</li>
-<li>
-<p><strong>figure_path (str, default="")</strong>:
-    Path where the plots shall be written to. Ignored if generate_plots is False.</p>
-</li>
-<li>
-<p><strong>complete_document (bool, default=True)</strong>:
-    Generates a complete latex document if true. Otherwise only a single section is generated.</p>
-</li>
-</ul>
               
             </div>
           </div>
