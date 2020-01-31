@@ -2,9 +2,9 @@ import unittest
 import tempfile
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
-
-from autorank.autorank import *
+from autorank import *
 
 pd.set_option('display.max_columns', 20)
 

@@ -13,6 +13,7 @@ from scipy import stats
 from io import StringIO
 from autorank._util import *
 
+__all__ = ['autorank', 'plot_stats', 'create_report', 'latex_table', 'latex_report']
 
 
 def autorank(data, alpha=0.05, verbose=False):

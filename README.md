@@ -89,7 +89,7 @@ The following example shows the usage of `autorank`. First, we import the functi
 ```python
 import numpy as np
 import pandas as pd
-from autorank.autorank import autorank, plot_stats, create_report, latex_table
+from autorank import autorank, plot_stats, create_report, latex_table
 
 np.random.seed(42)
 pd.set_option('display.max_columns', 7)
