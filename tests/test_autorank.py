@@ -34,6 +34,7 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
+        autorank(data, 0.05, self.verbose, order='ascending') # check if call works with ascending
         res = autorank(data, 0.05, self.verbose)
         self.assertTrue(res.all_normal)
         self.assertTrue(res.homoscedastic)
@@ -53,6 +54,7 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
+        autorank(data, 0.05, self.verbose, order='ascending')  # check if call works with ascending
         res = autorank(data, 0.05, self.verbose)
         self.assertTrue(res.all_normal)
         self.assertTrue(res.homoscedastic)
@@ -75,6 +77,7 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
+        autorank(data, 0.05, self.verbose, order='ascending')  # check if call works with ascending
         res = autorank(data, 0.05, self.verbose)
         self.assertFalse(res.all_normal)
         self.assertTrue(res.homoscedastic)
@@ -91,6 +94,7 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
+        autorank(data, 0.05, self.verbose, order='ascending')  # check if call works with ascending
         res = autorank(data, 0.05, self.verbose)
         self.assertFalse(res.all_normal)
         self.assertTrue(res.homoscedastic)
@@ -113,6 +117,7 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size)
+        autorank(data, 0.05, self.verbose, order='ascending')  # check if call works with ascending
         res = autorank(data, 0.05, self.verbose)
         self.assertTrue(res.all_normal)
         self.assertTrue(res.homoscedastic)
@@ -132,6 +137,7 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size)
+        autorank(data, 0.05, self.verbose, order='ascending')  # check if call works with ascending
         res = autorank(data, 0.05, self.verbose)
         self.assertTrue(res.all_normal)
         self.assertTrue(res.homoscedastic)
@@ -155,6 +161,7 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, stds[i], self.sample_size)
+        autorank(data, 0.05, self.verbose, order='ascending')  # check if call works with ascending
         res = autorank(data, 0.05, self.verbose)
         self.assertTrue(res.all_normal)
         self.assertFalse(res.homoscedastic)
@@ -174,6 +181,7 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, stds[i], self.sample_size)
+        autorank(data, 0.05, self.verbose, order='ascending')  # check if call works with ascending
         res = autorank(data, 0.05, self.verbose)
         self.assertTrue(res.all_normal)
         self.assertFalse(res.homoscedastic)
@@ -197,6 +205,7 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
+        autorank(data, 0.05, self.verbose, order='ascending')  # check if call works with ascending
         res = autorank(data, 0.05, self.verbose)
         self.assertFalse(res.all_normal)
         self.assertTrue(res.homoscedastic)
@@ -216,6 +225,7 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
+        autorank(data, 0.05, self.verbose, order='ascending')  # check if call works with ascending
         res = autorank(data, 0.05, self.verbose)
         self.assertFalse(res.all_normal)
         self.assertTrue(res.homoscedastic)
@@ -239,6 +249,7 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, stds[i], self.sample_size).clip(0, 1)
+        autorank(data, 0.05, self.verbose, order='ascending')  # check if call works with ascending
         res = autorank(data, 0.05, self.verbose)
         self.assertFalse(res.all_normal)
         self.assertFalse(res.homoscedastic)
@@ -258,6 +269,7 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, stds[i], self.sample_size).clip(0, 1)
+        autorank(data, 0.05, self.verbose, order='ascending') # check if call works with ascending
         res = autorank(data, 0.05, self.verbose)
         self.assertFalse(res.all_normal)
         self.assertFalse(res.homoscedastic)

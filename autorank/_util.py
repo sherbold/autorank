@@ -108,7 +108,7 @@ def _confidence_interval(data, alpha, is_normal=True):
 _ComparisonResult = namedtuple('ComparisonResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc'))
 
 
-def rank_two(data, alpha, verbose, all_normal):
+def rank_two(data, alpha, verbose, all_normal, order):
     """
     Uses paired t-test for normal data and Wilcoxon's signed rank test for other distributions.
     """
@@ -131,11 +131,11 @@ def rank_two(data, alpha, verbose, all_normal):
                 "Fail to reject null hypothesis that there is no difference between the distributions (p=%f)" % pval)
         else:
             print("Rejecting null hypothesis that there is no difference between the distributions (p=%f)" % pval)
-    rankdf = _create_result_df_skeleton(data, alpha, all_normal)
+    rankdf = _create_result_df_skeleton(data, alpha, all_normal, order)
     return _ComparisonResult(rankdf, pval, None, omnibus, None)
 
 
-def rank_multiple_normal_homoscedastic(data, alpha=0.05, verbose=False):
+def rank_multiple_normal_homoscedastic(data, alpha, verbose, order):
     """
     Analyzes data using repeated measures ANOVA and Tukey HSD.
     """
@@ -161,11 +161,8 @@ def rank_multiple_normal_homoscedastic(data, alpha=0.05, verbose=False):
     tukey_res.plot_simultaneous()
     # delete plot instead of showing
     plt.close()
-    rankmat = data.rank(axis='columns', ascending=False)
-    meanranks = rankmat.mean().sort_values()
-    rankdf = pd.DataFrame(index=meanranks.index)
-    rankdf['meanrank'] = meanranks
-    rankdf = _create_result_df_skeleton(data, None, True)
+
+    rankdf = _create_result_df_skeleton(data, None, True, order)
     for population in rankdf.index:
         mean = data.loc[:, population].mean()
         ci_range = tukey_res.halfwidths[data.columns.get_loc(population)]
@@ -175,7 +172,7 @@ def rank_multiple_normal_homoscedastic(data, alpha=0.05, verbose=False):
     return _ComparisonResult(rankdf, pval, None, 'anova', 'tukeyhsd')
 
 
-def rank_multiple_nonparametric(data, alpha, verbose, all_normal):
+def rank_multiple_nonparametric(data, alpha, verbose, all_normal, order):
     """
     Analyzes data following Demsar using Friedman-Nemenyi.
     """
@@ -192,11 +189,11 @@ def rank_multiple_nonparametric(data, alpha, verbose, all_normal):
                 "Differences are significant,"
                 "if the distance between the mean ranks is greater than the critical distance.")
     cd = _critical_distance(alpha, k=len(data.columns), n=len(data))
-    rankdf = _create_result_df_skeleton(data, alpha, all_normal)
+    rankdf = _create_result_df_skeleton(data, alpha, all_normal, order)
     return _ComparisonResult(rankdf, pval, cd, 'friedman', 'nemenyi')
 
 
-def _create_result_df_skeleton(data, alpha, all_normal):
+def _create_result_df_skeleton(data, alpha, all_normal, order):
     """
     Creates data frame for results. CI may be left empty in case alpha is None
     """
@@ -205,7 +202,13 @@ def _create_result_df_skeleton(data, alpha, all_normal):
     else:
         effsize_method = 'cliffdelta'
 
-    rankmat = data.rank(axis='columns', ascending=False)
+    asc = None
+    if order == 'descending':
+        asc = False
+    elif order == 'ascending':
+        asc = True
+
+    rankmat = data.rank(axis='columns', ascending=asc)
     meanranks = rankmat.mean().sort_values()
     if effsize_method == 'cohend':
         rankdf = pd.DataFrame(index=meanranks.index,

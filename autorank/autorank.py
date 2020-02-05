@@ -16,7 +16,7 @@ from autorank._util import *
 __all__ = ['autorank', 'plot_stats', 'create_report', 'latex_table', 'latex_report']
 
 
-def autorank(data, alpha=0.05, verbose=False):
+def autorank(data, alpha=0.05, verbose=False, order='descending'):
     """
     Automatically compares populations defined in a block-design data frame. Each column in the data frame contains
     the samples for one population. The data must not contain any NaNs. The data must have at least five measurements,
@@ -62,6 +62,10 @@ def autorank(data, alpha=0.05, verbose=False):
     verbose (bool, default=False):
         Prints decisions and p-values while running the autorank function to stdout.
 
+    order (string, default='descending'):
+        Determines the ordering central tendencies of the populations for the ranking. 'descending' results in higher
+        ranks for larger values. 'ascending' results in higher ranks for smaller values.
+
     # Returns
 
     A named tuple of type RankResult with the following entries.
@@ -106,6 +110,9 @@ def autorank(data, alpha=0.05, verbose=False):
 
     num_samples (int):
         Number of samples within each population.
+
+    order (string):
+        Order of the central tendencies used for ranking.
     """
 
     # validate inputs
@@ -123,6 +130,11 @@ def autorank(data, alpha=0.05, verbose=False):
 
     if not isinstance(verbose, bool):
         raise TypeError('verbose must be bool')
+
+    if not isinstance(order, str):
+        raise TypeError('order must be str')
+    if order not in ['ascending', 'descending']:
+        raise ValueError("order must be either 'ascending' or 'descending'")
 
     # Bonferoni correction for normality tests
     alpha_normality = alpha / len(data.columns)
@@ -161,12 +173,12 @@ def autorank(data, alpha=0.05, verbose=False):
 
     # Select appropriate tests
     if len(data.columns) == 2:
-        res = rank_two(data, alpha, verbose, all_normal)
+        res = rank_two(data, alpha, verbose, all_normal, order)
     else:
         if all_normal and var_equal:
-            res = rank_multiple_normal_homoscedastic(data, alpha, verbose)
+            res = rank_multiple_normal_homoscedastic(data, alpha, verbose, order)
         else:
-            res = rank_multiple_nonparametric(data, alpha, verbose, all_normal)
+            res = rank_multiple_nonparametric(data, alpha, verbose, all_normal, order)
 
     return RankResult(res.rankdf, res.pvalue, res.cd, res.omnibus, res.posthoc, all_normal, pvals_shapiro, var_equal,
                       pval_homogeneity, homogeneity_test, alpha, alpha_normality, len(data))
