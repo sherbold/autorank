@@ -95,7 +95,7 @@
               
                 <h1 id="autorank.autorank">autorank</h1>
 
-<pre><code class="python">autorank(data, alpha=0.05, verbose=False)
+<pre><code class="python">autorank(data, alpha=0.05, verbose=False, order='descending')
 </code></pre>
 
 <p>Automatically compares populations defined in a block-design data frame. Each column in the data frame contains
@@ -140,6 +140,11 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
 <p><strong>verbose (bool, default=False)</strong>:
     Prints decisions and p-values while running the autorank function to stdout.</p>
 </li>
+<li>
+<p><strong>order (string, default='descending')</strong>:
+    Determines the ordering central tendencies of the populations for the ranking. 'descending' results in higher
+    ranks for larger values. 'ascending' results in higher ranks for smaller values.</p>
+</li>
 </ul>
 <p><strong>Returns</strong></p>
 <p>A named tuple of type RankResult with the following entries.</p>
@@ -171,6 +176,8 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
     Corrected alpha that is used for tests for normality.</p>
 <p><code>num_samples (int)</code>:
     Number of samples within each population.</p>
+<p><code>order (string)</code>:
+    Order of the central tendencies used for ranking.</p>
               
             </div>
           </div>
