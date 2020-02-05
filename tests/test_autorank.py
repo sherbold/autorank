@@ -306,6 +306,12 @@ class TestAutorank(unittest.TestCase):
         self.assertRaises(TypeError, autorank,
                           data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
                           verbose="foo")
+        self.assertRaises(TypeError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
+                          order=True)
+        self.assertRaises(ValueError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
+                          order="foo")
 
     def test_plot_stats_invalid(self):
         self.assertRaises(TypeError, plot_stats,
