@@ -6,7 +6,11 @@ site_name: "Autorank"
 # documented. Higher indentation leads to smaller header size.
 generate:
 - autorank.md:
-  - autorank.autorank+
+  - autorank.autorank
+  - autorank.create_report
+  - autorank.plot_stats
+  - autorank.latex_table
+  - autorank.latex_report
 
 # MkDocs pages configuration. The `<<` operator is sugar added by pydocmd
 # that allows you to use an external Markdown file (eg. your project's README)
