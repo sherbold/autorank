@@ -99,7 +99,6 @@ def _confidence_interval(data, alpha, is_normal=True):
 
         r = max(0, r)
         s = min(len(data)-1, s)
-        print(r, s, len(data), quantile)
         sorted_data = data.sort_values()
         lower = sorted_data.iloc[int(round(r))]
         upper = sorted_data.iloc[int(round(s))]
