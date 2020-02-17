@@ -66,12 +66,34 @@ generate the textual description of the results, as well as the plot of the resu
 > from autorank import autorank, create_report, plot_stats
 > results = autorank(data)
 > create_report(results)
-The statistical analysis was conducted for 6 populations with 20 paired samples.
+The statistical analysis was conducted for 6 populations with 20 paired
+samples.
 The family-wise significance level of the tests is alpha=0.050.
-We rejected the null hypothesis that the population is normal for the population Random Forest (p=0.000). Therefore, we assume that not all populations are normal.
-Because we have more than two populations and the populations and one of them is not normal, we use the non-parametric Friedman test as omnibus test to determine if there are any significant differences between the median values of the populations. We use the post-hoc Nemenyi test to infer which differences are significant. We report the median (MD), the median absolute deviation (MAD) and the mean rank (MR) among all populations over the samples. Differences between populations are significant, if the difference of the mean rank is greater than the critical distance CD=1.686 of the Nemenyi test.
-We reject the null hypothesis (p=0.000) of the Friedman test that there is no difference in the central tendency of the populations Naive Bayes (MD=0.875+-0.065, MAD=0.053, MR=2.750), Random Forest (MD=0.850+-0.100, MAD=0.062, MR=2.850), RBF SVM (MD=0.885+-0.217, MAD=0.059, MR=2.900), Neural Net (MD=0.876+-0.070, MAD=0.045, MR=3.300), Decision Tree (MD=0.810+-0.173, MAD=0.074, MR=4.525), and Linear SVM (MD=0.710+-0.245, MAD=0.253, MR=4.675). Therefore, we assume that there is a statistically significant difference between the median values of the populations.
-Based the post-hoc Nemenyi test, we assume that there are no significant differences within the following groups: Naive Bayes, Random Forest, RBF SVM, and Neural Net; Random Forest, RBF SVM, Neural Net, and Decision Tree; Neural Net, Decision Tree, and Linear SVM. All other differences are significant.
+We rejected the null hypothesis that the population is normal for the
+population Random Forest (p=0.000). Therefore, we assume that not all
+populations are normal.
+Because we have more than two populations and the populations and one of
+them is not normal, we use the non-parametric Friedman test as omnibus
+test to determine if there are any significant differences between the
+median values of the populations. We use the post-hoc Nemenyi test to
+infer which differences are significant. We report the median (MD), the
+median absolute deviation (MAD) and the mean rank (MR) among all
+populations over the samples. Differences between populations are
+significant, if the difference of the mean rank is greater than the
+critical distance CD=1.686 of the Nemenyi test.
+We reject the null hypothesis (p=0.000) of the Friedman test that there
+is no difference in the central tendency of the populations Naive Bayes
+(MD=0.875+-0.065, MAD=0.053, MR=2.750), Random Forest (MD=0.850+-0.100,
+MAD=0.062, MR=2.850), RBF SVM (MD=0.885+-0.217, MAD=0.059, MR=2.900),
+Neural Net (MD=0.876+-0.070, MAD=0.045, MR=3.300), Decision Tree
+(MD=0.810+-0.173, MAD=0.074, MR=4.525), and Linear SVM (MD=0.710+-0.245,
+MAD=0.253, MR=4.675). Therefore, we assume that there is a statistically
+significant difference between the median values of the populations.
+Based the post-hoc Nemenyi test, we assume that there are no significant
+differences within the following groups: Naive Bayes, Random Forest, RBF
+SVM, and Neural Net; Random Forest, RBF SVM, Neural Net, and Decision
+Tree; Neural Net, Decision Tree, and Linear SVM. All other differences
+are significant.
 
 > plot_stats(data)
 ```
@@ -82,6 +104,6 @@ Based the post-hoc Nemenyi test, we assume that there are no significant differe
 
 This work is partially funded by DFG Grant 402774445.
 
-# References
+[^1]: See also: https://github.com/sherbold/autorank/tree/master/examples/sklearn.py
 
-[^1] See also: https://github.com/sherbold/autorank/tree/master/examples/sklearn.py
+# References
