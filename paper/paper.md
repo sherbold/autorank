@@ -35,9 +35,10 @@ All this is already quite complex. Additionally, researchers must adjust the sig
 tests to achieve the desired family-wise significance and control the false-positive rate of the test results. 
 
 Moreover, there are important aspects that go beyond Demšar's guidelines regarding best practice for the reporting of
-statistical result. Good reporting of the results goes beyond simply stating the signficance of findings. Instead,
-additional aspect such as effect sizes, confidence intervals, and the decision whether it is appropriate to report the 
-mean value and standard deviation, or whether the median value and the median absolute deviation are better suited.
+statistical result. Good reporting of the results goes beyond simply stating the significance of findings. 
+Additional aspects also matter, e.g., effect sizes, confidence intervals, and the decision whether it is appropriate to
+report the mean value and standard deviation, or whether the median value and the median absolute deviation are better
+suited.
 
 The goal of Autorank is to simplify the statistical analysis for non-experts. Autorank takes care of all of the above
 with a single function call. The decision flow of Autorank is as follows.
