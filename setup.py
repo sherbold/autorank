@@ -13,7 +13,7 @@ setup(
     description='Automated ranking of populations in a repeated measures experiment, e.g., to rank different machine learning approaches tested on the same data.',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    install_requires=['numpy', 'pandas', 'statsmodels', 'scipy', 'matplotlib'],
+    install_requires=['numpy', 'pandas>=0.25.0', 'statsmodels>=0.10.0', 'scipy>=1.3.0', 'matplotlib>=3.1.3'],
     author='sherbold',
     author_email='herbold@cs.uni.goettingen.de',
     url='https://github.com/sherbold/autorank',
