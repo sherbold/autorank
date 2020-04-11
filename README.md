@@ -89,6 +89,7 @@ The following example shows the usage of `autorank`. First, we import the functi
 ```python
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from autorank import autorank, plot_stats, create_report, latex_table
 
 np.random.seed(42)
