@@ -161,7 +161,7 @@ confidence interval in case of the paired t-test and repeated measures ANOVA and
 post-hoc Nemenyi test. 
 
 ```python
-plot_stats(res)
+plot_stats(result)
 plt.show()
 ```
 
@@ -171,7 +171,7 @@ For the above example, the following plot is created:
 
 To further support reporting in scholarly article, Autorank can also generate a latex table with the relevant results. 
 ```python
-latex_table(res)
+latex_table(result)
 ```
 Output:
 ```
