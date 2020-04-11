@@ -7,13 +7,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
   
+  
   <link rel="shortcut icon" href="../img/favicon.ico">
   <title>autorank - Autorank</title>
-  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
 
-  <link rel="stylesheet" href="../css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../css/theme_extra.css" type="text/css" />
-  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
+  <link rel="stylesheet" href="../css/theme.css" />
+  <link rel="stylesheet" href="../css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" />
   
   <script>
     // Current page data
@@ -24,7 +25,7 @@
   
   <script src="../js/jquery-2.1.1.min.js" defer></script>
   <script src="../js/modernizr-2.8.3.min.js" defer></script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
   <script>hljs.initHighlightingOnLoad();</script> 
   
 </head>
@@ -35,6 +36,7 @@
 
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
       <div class="wy-side-nav-search">
         <a href=".." class="icon icon-home"> Autorank</a>
         <div role="search">
@@ -45,25 +47,16 @@
       </div>
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-	<ul class="current">
-	  
-          
-            <li class="toctree-l1">
-		
-    <a class="" href="..">Home</a>
-	    </li>
-          
-            <li class="toctree-l1 current">
-		
-    <a class="current" href="./">autorank</a>
-    <ul class="subnav">
-            
-    </ul>
-	    </li>
-          
-        </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                    </li>
+                </ul>
+                <ul class="current">
+                    <li class="toctree-l1 current"><a class="reference internal current" href="./">autorank</a>
+                    </li>
+                </ul>
       </div>
-      &nbsp;
+    </div>
     </nav>
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
@@ -88,6 +81,7 @@
       
     </li>
   </ul>
+  
   <hr/>
 </div>
           <div role="main">
@@ -125,79 +119,63 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
 - If there are more than two populations and at least one populations is not normal or the populations are
   heteroscedastic, we use Friedman's test with the Nemenyi post-hoc test.</p>
 <p><strong>Parameters</strong></p>
-<ul>
-<li>
-<p><strong>data (DataFrame)</strong>:
+<p>data (DataFrame):
     Each column contains a population and each row contains the paired measurements
     for the populations.</p>
-</li>
-<li>
-<p><strong>alpha (float, default=0.05)</strong>:
+<p>alpha (float, default=0.05):
     Significance level. We internally use correction to ensure that all results (incl. confidence
     intervals) together fulfill this confidence level.</p>
-</li>
-<li>
-<p><strong>verbose (bool, default=False)</strong>:
+<p>verbose (bool, default=False):
     Prints decisions and p-values while running the autorank function to stdout.</p>
-</li>
-<li>
-<p><strong>order (string, default='descending')</strong>:
+<p>order (string, default='descending'):
     Determines the ordering central tendencies of the populations for the ranking. 'descending' results in higher
     ranks for larger values. 'ascending' results in higher ranks for smaller values.</p>
-</li>
-</ul>
 <p><strong>Returns</strong></p>
 <p>A named tuple of type RankResult with the following entries.</p>
-<p><code>rankdf (DataFrame)</code>:
+<p>rankdf (DataFrame):
     Ranked populations including statistics about the populations.</p>
-<p><code>pvalue (float)</code>:
+<p>pvalue (float):
     p-value of the omnibus test for the difference in central tendency between the populations.</p>
-<p><code>omnibus (string)</code>:
+<p>omnibus (string):
    mnibus test that is used for the test of a difference ein the central tendency.</p>
-<p><code>posthoc (string)</code>:
+<p>posthoc (string):
     Posthoc tests that was used. The posthoc test is performed even if the omnibus test is not significant. The
     results should only be used if the p-value of the omnibus test indicates significance. None in case of two
     populations.</p>
-<p><code>cd (float)</code>:
+<p>cd (float):
     The critical distance of the Nemenyi posthoc test, if it was used. Otherwise None.</p>
-<p><code>all_normal (bool)</code>:
+<p>all_normal (bool):
     True if all populations are normal, false if at least one is not normal.</p>
-<p><code>pvals_shapiro (list)</code>:
+<p>pvals_shapiro (list):
     p-values of the Shapiro-Wilk tests for normality sorted by the order of the input columns.</p>
-<p><code>homoscedastic (bool)</code>:
+<p>homoscedastic (bool):
     True if populations are homoscedastic, false otherwise.</p>
-<p><code>pval_homogeneity (float)</code>:
+<p>pval_homogeneity (float):
     p-value of the test for homogeneity.</p>
-<p><code>homogeneity_test (string)</code>:
+<p>homogeneity_test (string):
     Test used for homogeneity. Either 'bartlet' or 'levene'.</p>
-<p><code>alpha (float)</code>:
+<p>alpha (float):
     Family-wise significant level. Same as input parameter.</p>
-<p><code>alpha_normality (float)</code>:
+<p>alpha_normality (float):
     Corrected alpha that is used for tests for normality.</p>
-<p><code>num_samples (int)</code>:
+<p>num_samples (int):
     Number of samples within each population.</p>
-<p><code>order (string)</code>:
+<p>order (string):
     Order of the central tendencies used for ranking.</p>
 <h1 id="autorank.create_report">create_report</h1>
 
-<pre><code class="python">create_report(result, *, decimal_places=3)
+<pre><code class="python">create_report(result, *, decimal_places)
 </code></pre>
 
 <p>Prints a report about the statistical analysis.</p>
 <p><strong>Parameters</strong></p>
-<ul>
-<li>
-<p><strong>result (RankResult)</strong>:
+<p>result (RankResult):
     Should be the return value the autorank function.</p>
-</li>
-<li>
-<p><strong>decimal_places (int, default=3)</strong>:
+<p>decimal_places (int, default=3):
     Number of decimal places that are used for the report.</p>
-</li>
-</ul>
 <h1 id="autorank.plot_stats">plot_stats</h1>
 
-<pre><code class="python">plot_stats(result, *, allow_insignificant=False, ax=None, width=None)
+<pre><code class="python">plot_stats(result, *, allow_insignificant, ax, width)
 </code></pre>
 
 <p>Creates a plot that supports the analysis of the results of the statistical test. The plot depends on the
@@ -211,82 +189,51 @@ statistical test that was used.
 <p>This function raises a ValueError if the omnibus test did not detect a significant difference. The allow_significant
 parameter allows the suppression of this exception and forces the creation of the plots.</p>
 <p><strong>Parameters</strong></p>
-<ul>
-<li>
-<p><strong>result (RankResult)</strong>:
+<p>result (RankResult):
     Should be the return value the autorank function.</p>
-</li>
-<li>
-<p><strong>allow_insignificant (bool, default=False)</strong>:
+<p>allow_insignificant (bool, default=False):
     Forces plotting even if results are not significant.</p>
-</li>
-<li>
-<p><strong>ax (Axis, default=None)</strong>:
+<p>ax (Axis, default=None):
     Matplotlib axis to which the results are added. A new figure with a single axis is created if None.</p>
-</li>
-<li>
-<p><strong>width (float, default=None)</strong>:
+<p>width (float, default=None):
     Specifies the width of the created plot is not None. By default, we use a width of 6. The height is
     automatically determined, based on the type of plot and the number of populations. This parameter is ignored if
     ax is not None.</p>
-</li>
-</ul>
 <p><strong>Return</strong></p>
 <p>Axis with the plot. None if no plot was generated.</p>
 <h1 id="autorank.latex_table">latex_table</h1>
 
-<pre><code class="python">latex_table(result, *, decimal_places=3, label=None)
+<pre><code class="python">latex_table(result, *, decimal_places, label)
 </code></pre>
 
 <p>Creates a latex table from the results dataframe of the statistical analysis.</p>
 <p><strong>Parameters</strong></p>
-<ul>
-<li>
-<p><strong>result (RankResult)</strong>:
+<p>result (RankResult):
     Should be the return value the autorank function.</p>
-</li>
-<li>
-<p><strong>decimal_places (int, default=3)</strong>:
+<p>decimal_places (int, default=3):
     Number of decimal places that are used for the report.</p>
-</li>
-<li>
-<p><strong>label (str, default=None)</strong>:</p>
-</li>
-<li><strong>Label of the table. Defaults to 'tbl</strong>:stat_results' if None.</li>
-</ul>
+<p>label (str, default=None):
+    Label of the table. Defaults to 'tbl:stat_results' if None.</p>
 <h1 id="autorank.latex_report">latex_report</h1>
 
-<pre><code class="python">latex_report(result, *, decimal_places=3, prefix='', generate_plots=True, figure_path='', complete_document=True)
+<pre><code class="python">latex_report(result, *, decimal_places, prefix, generate_plots,
+             figure_path, complete_document)
 </code></pre>
 
 <p>Creates a latex report of the statistical analysis.</p>
 <p><strong>Parameters</strong></p>
-<ul>
-<li>
-<p><strong>result (AutoRank)</strong>:
+<p>result (AutoRank):
     Should be the return value the autorank function.</p>
-</li>
-<li>
-<p><strong>decimal_places (int, default=3)</strong>:
+<p>decimal_places (int, default=3):
     Number of decimal places that are used for the report.</p>
-</li>
-<li>
-<p><strong>prefix (str, default="")</strong>:
+<p>prefix (str, default=""):
     Prefix that is added before all labels and plot file names.</p>
-</li>
-<li>
-<p><strong>generate_plots (bool, default=True)</strong>:
+<p>generate_plots (bool, default=True):
     Decides if plots are generated, if the results are statistically significant.</p>
-</li>
-<li>
-<p><strong>figure_path (str, default="")</strong>:
+<p>figure_path (str, default=""):
     Path where the plots shall be written to. Ignored if generate_plots is False.</p>
-</li>
-<li>
-<p><strong>complete_document (bool, default=True)</strong>:
+<p>complete_document (bool, default=True):
     Generates a complete latex document if true. Otherwise only a single section is generated.</p>
-</li>
-</ul>
               
             </div>
           </div>
@@ -307,7 +254,7 @@ parameter allows the suppression of this exception and forces the creation of th
     
   </div>
 
-  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
       
         </div>
@@ -317,7 +264,7 @@ parameter allows the suppression of this exception and forces the creation of th
 
   </div>
 
-  <div class="rst-versions" role="note" style="cursor: pointer">
+  <div class="rst-versions" role="note" aria-label="versions">
     <span class="rst-current-version" data-toggle="rst-current-version">
       
       
@@ -329,6 +276,11 @@ parameter allows the suppression of this exception and forces the creation of th
     <script>var base_url = '..';</script>
     <script src="../js/theme.js" defer></script>
       <script src="../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
 
 </body>
 </html>
