@@ -11,7 +11,7 @@ Autorank is a simple Python package with one task: simplify the comparison betwe
 is, for example, required if the performance different machine learning algorithms or simulations should be compared on
 multiple data sets. The performance measures on each data set are then the paired samples, the difference in the central
 tendency (e.g., the mean or median) can be used to rank the different algorithms. This problem is not new and how such
-tests could be done was already descibed in 2006  in the well-known article _Janez Demšar. 2006. Statistical Comparisons
+tests could be done was already described in 2006  in the well-known article _Janez Demšar. 2006. Statistical Comparisons
 of Classifiers over Multiple Data Sets. J. Mach. Learn. Res. 7 (December 2006), 1–30_. 
 
 Regardless, the correct use of Demšar guidelines is hard for non-experts in statistics. Correct use of the guidelines
@@ -26,7 +26,7 @@ the mean value and standard deviation, or whether the median value and the media
 appropriate.   
 
 The goal of Autorank is to simplify the statistical analysis for non-experts. Autorank takes care of all of the above
-with a single function call. Additional functions allow the generation of apprprioate plots, result tables, and even of
+with a single function call. Additional functions allow the generation of appropriate plots, result tables, and even of
 a complete latex document. All that is required is the data about the populations is in a 
 [Pandas](https://pandas.pydata.org/) dataframe.   
 
@@ -110,7 +110,7 @@ for i, mean in enumerate(means):
     data['pop_%i' % i] = np.random.normal(mean, std, sample_size).clip(0, 1)
 ```
 
-The statitistical analysis of the data only requires a single command. As a result, you get a named tuple with all
+The statistical analysis of the data only requires a single command. As a result, you get a named tuple with all
 relevant information from the statistical analysis conducted.  
 ```python
 result = autorank(data, alpha=0.05, verbose=False)
