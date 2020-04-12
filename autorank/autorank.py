@@ -15,6 +15,11 @@ from autorank._util import *
 
 __all__ = ['autorank', 'plot_stats', 'create_report', 'latex_table', 'latex_report']
 
+if 'text.usetex' in plt.rcParams and plt.rcParams['text.usetex']==True:
+    raise UserWarning("plot_stats may fail if the matplotlib setting plt.rcParams['text.usetex']==True.\n"
+                      "In case of failures you can try to set this value to False as follows:"
+                      "plt.rc('text', usetex=False)")
+
 
 def autorank(data, alpha=0.05, verbose=False, order='descending'):
     """
