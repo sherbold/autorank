@@ -39,9 +39,17 @@ Autorank is available on PyPi and can be installed using pip.
 pip install autorank
 ```
 
-## Documentation
+You can also clone this repository and install the latest development version (requires git and setuptools).
+```
+git clone https://github.com/sherbold/autorank
+cd autorank
+python setup.py install
+```
 
-You can find the documentation of the current master of Autorank [online](https://sherbold.github.io/autorank).
+## API Documentation
+
+You can find the API documentation of the current master of Autorank
+[online](https://sherbold.github.io/autorank/autorank/).
 
 ## Description
 
@@ -102,7 +110,8 @@ for i, mean in enumerate(means):
     data['pop_%i' % i] = np.random.normal(mean, std, sample_size).clip(0, 1)
 ```
 
-The statitistical analysis of the data only requires a single command. As a result, you get a named tuple with all relevant information from the statistical analysis conducted.  
+The statitistical analysis of the data only requires a single command. As a result, you get a named tuple with all
+relevant information from the statistical analysis conducted.  
 ```python
 result = autorank(data, alpha=0.05, verbose=False)
 print(result)
@@ -198,6 +207,25 @@ pop\_0 & 5.400 & 0.130 & 0.192 &  [0.000, 0.349] &     0.919 &       large \\
 The rendered table looks like this (may change depending on the class of the document).
  
 ![Table](examples/table.png)
+
+## Creating a Local Developer Environment
+
+If you want to modify the code of autorank, we recommend that you setup a local development environment with a 
+virtual environment as follows. 
+
+```
+git clone https://github.com/sherbold/autorank
+cd autorank
+python3 -m venv .
+source bin/activate
+pip install .
+```
+
+You can run the tests to check if everything works. 
+
+```
+python -m unittest
+```
 
 ## Contributing
 
