@@ -41,7 +41,8 @@ report the mean value and standard deviation, or whether the median value and th
 suited.
 
 The goal of Autorank is to simplify the statistical analysis for non-experts. Autorank takes care of all of the above
-with a single function call. The decision flow of Autorank is as follows.
+with a single function call. This is the difference between Autorank other packages, like Scipy [@Pauli2020], who expect
+users to know which tests to use and how to interpret the results. The decision flow of Autorank is as follows.
 
 ![Decision Flow](flowchart.png)
 
