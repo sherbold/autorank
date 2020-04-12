@@ -54,11 +54,13 @@
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#documentation">Documentation</a>
+    <li class="toctree-l2"><a class="reference internal" href="#api-documentation">API Documentation</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#description">Description</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#usage-example">Usage Example</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#creating-a-local-developer-environment">Creating a Local Developer Environment</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#contributing">Contributing</a>
     </li>
@@ -113,7 +115,7 @@
 is, for example, required if the performance different machine learning algorithms or simulations should be compared on
 multiple data sets. The performance measures on each data set are then the paired samples, the difference in the central
 tendency (e.g., the mean or median) can be used to rank the different algorithms. This problem is not new and how such
-tests could be done was already descibed in 2006  in the well-known article <em>Janez Demšar. 2006. Statistical Comparisons
+tests could be done was already described in 2006  in the well-known article <em>Janez Demšar. 2006. Statistical Comparisons
 of Classifiers over Multiple Data Sets. J. Mach. Learn. Res. 7 (December 2006), 1–30</em>. </p>
 <p>Regardless, the correct use of Demšar guidelines is hard for non-experts in statistics. Correct use of the guidelines
 requires the decision of whether a paired t-test, a Wilcoxon's rank sum test, repeated measures ANOVA with Tukey's HSD 
@@ -126,7 +128,7 @@ of the results also include confidence intervals, effect sizes, and the decision
 the mean value and standard deviation, or whether the median value and the median absolute deviation is more
 appropriate.   </p>
 <p>The goal of Autorank is to simplify the statistical analysis for non-experts. Autorank takes care of all of the above
-with a single function call. Additional functions allow the generation of apprprioate plots, result tables, and even of
+with a single function call. Additional functions allow the generation of appropriate plots, result tables, and even of
 a complete latex document. All that is required is the data about the populations is in a 
 <a href="https://pandas.pydata.org/">Pandas</a> dataframe.   </p>
 <h2 id="installation">Installation</h2>
@@ -134,8 +136,15 @@ a complete latex document. All that is required is the data about the population
 <pre><code>pip install autorank
 </code></pre>
 
-<h2 id="documentation">Documentation</h2>
-<p>You can find the documentation of the current master of Autorank <a href="https://sherbold.github.io/autorank">online</a>.</p>
+<p>You can also clone this repository and install the latest development version (requires git and setuptools).</p>
+<pre><code>git clone https://github.com/sherbold/autorank
+cd autorank
+python setup.py install
+</code></pre>
+
+<h2 id="api-documentation">API Documentation</h2>
+<p>You can find the API documentation of the current master of Autorank
+<a href="https://sherbold.github.io/autorank/autorank/">online</a>.</p>
 <h2 id="description">Description</h2>
 <p>The following flow chart summarizes the decisions made by Autorank.</p>
 <p><img alt="CD Diagram" src="flowchart.png" /></p>
@@ -184,7 +193,8 @@ for i, mean in enumerate(means):
     data['pop_%i' % i] = np.random.normal(mean, std, sample_size).clip(0, 1)
 </code></pre>
 
-<p>The statitistical analysis of the data only requires a single command. As a result, you get a named tuple with all relevant information from the statistical analysis conducted.  </p>
+<p>The statistical analysis of the data only requires a single command. As a result, you get a named tuple with all
+relevant information from the statistical analysis conducted.  </p>
 <pre><code class="python">result = autorank(data, alpha=0.05, verbose=False)
 print(result)
 </code></pre>
@@ -273,10 +283,26 @@ pop\_0 &amp; 5.400 &amp; 0.130 &amp; 0.192 &amp;  [0.000, 0.349] &amp;     0.919
 
 <p>The rendered table looks like this (may change depending on the class of the document).</p>
 <p><img alt="Table" src="examples/table.png" /></p>
+<h2 id="creating-a-local-developer-environment">Creating a Local Developer Environment</h2>
+<p>If you want to modify the code of autorank, we recommend that you setup a local development environment with a 
+virtual environment as follows. </p>
+<pre><code>git clone https://github.com/sherbold/autorank
+cd autorank
+python3 -m venv .
+source bin/activate
+pip install .
+</code></pre>
+
+<p>You can run the tests to check if everything works. </p>
+<pre><code>python -m unittest
+</code></pre>
+
 <h2 id="contributing">Contributing</h2>
-<p>Contributions to Autorank are welcome.
-- Just file an <a href="">Issue</a> to ask questions, report bugs, or request new features. 
-- Pull requests via GitHub are also welcome.</p>
+<p>Contributions to Autorank are welcome.</p>
+<ul>
+<li>Just file an <a href="">Issue</a> to ask questions, report bugs, or request new features. </li>
+<li>Pull requests via GitHub are also welcome.</li>
+</ul>
 <p>Potential contributions include more detailed report generation or the extension of Autorank to more types of data,
 e.g., independent populations, or paired populations with unequal sample sizes.   </p>
 <h2 id="license">License</h2>
@@ -334,5 +360,5 @@ e.g., independent populations, or paired populations with unequal sample sizes. 
 
 <!--
 MkDocs version : 1.1
-Build Date UTC : 2020-04-11 18:25:34
+Build Date UTC : 2020-04-12 11:55:54
 -->
