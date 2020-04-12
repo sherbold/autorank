@@ -202,6 +202,7 @@ The rendered table looks like this (may change depending on the class of the doc
 ## Contributing
 
 Contributions to Autorank are welcome.
+
 - Just file an [Issue]() to ask questions, report bugs, or request new features. 
 - Pull requests via GitHub are also welcome.
 
