@@ -4,6 +4,8 @@
 [![codecov](https://codecov.io/gh/sherbold/autorank/branch/master/graph/badge.svg)](https://codecov.io/gh/sherbold/autorank)
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/sherbold/autorank.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sherbold/autorank/alerts/)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/sherbold/autorank.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sherbold/autorank/context:python)
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.02173/status.svg)](https://doi.org/10.21105/joss.02173)
+
 
 ## Summary
 
@@ -30,6 +32,23 @@ with a single function call. Additional functions allow the generation of approp
 a complete latex document. All that is required is the data about the populations is in a 
 [Pandas](https://pandas.pydata.org/) dataframe.   
 
+
+## How to cite Autorank
+
+```
+@article{Herbold2020,
+  doi = {10.21105/joss.02173},
+  url = {https://doi.org/10.21105/joss.02173},
+  year = {2020},
+  publisher = {The Open Journal},
+  volume = {5},
+  number = {48},
+  pages = {2173},
+  author = {Steffen Herbold},
+  title = {Autorank: A Python package for automated ranking of classifiers},
+  journal = {Journal of Open Source Software}
+}
+```
 
 ## Installation
 
