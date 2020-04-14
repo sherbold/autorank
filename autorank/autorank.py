@@ -463,7 +463,7 @@ def create_report(result, *, decimal_places=3):
                                         create_population_string(result.rankdf.index, with_stats=True, with_rank=True)))
                 meanranks, names, groups = get_sorted_rank_groups(result, False)
                 if len(groups) == 0:
-                    print("Based on post-hoc Nemenyi test, we assume that all differences between the populations "
+                    print("Based on the post-hoc Nemenyi test, we assume that all differences between the populations "
                           "are significant.")
                 else:
                     groupstrs = []
@@ -476,8 +476,9 @@ def create_report(result, *, decimal_places=3):
                         else:
                             cur_groupstr = ", ".join([names[pop] for pop in group[:-1]]) + ", and " + names[group[-1]]
                         groupstrs.append(cur_groupstr)
-                    print("Based the post-hoc Nemenyi test, we assume that there are no significant differences within "
-                          "the following groups: %s. All other differences are significant." % ("; ".join(groupstrs)))
+                    print("Based on the post-hoc Nemenyi test, we assume that there are no significant differences "
+                          "within the following groups: %s. All other differences are "
+                          "significant." % ("; ".join(groupstrs)))
         else:
             raise ValueError('Unknown omnibus test for difference in the central tendency: %s' % result.omnibus)
 

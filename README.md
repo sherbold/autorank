@@ -163,7 +163,7 @@ the populations pop_5 (MD=0.912+-0.154, MAD=0.130, MR=2.180), pop_4 (MD=0.910+-0
 (MD=0.858+-0.213, MAD=0.210, MR=2.470), pop_2 (MD=0.505+-0.249, MAD=0.334, MR=3.950), pop_1 (MD=0.314+-0.199, 
 MAD=0.247, MR=4.710), and pop_0 (MD=0.130+-0.175, MAD=0.192, MR=5.400). Therefore, we assume that there is a 
 statistically significant difference between the median values of the populations.
-Based the post-hoc Nemenyi test, we assume that there are no significant differences within the following groups: 
+Based on the post-hoc Nemenyi test, we assume that there are no significant differences within the following groups: 
 pop_5, pop_4, and pop_3; pop_2 and pop_1; pop_1 and pop_0. All other differences are significant.
 ```
 Our you could use Autorank to generate a plot that visualizes the statistical analysis. Autorank creates plots of the
