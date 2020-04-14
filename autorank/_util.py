@@ -12,9 +12,40 @@ from collections import namedtuple
 __all__ = ['rank_two', 'rank_multiple_normal_homoscedastic', 'RankResult', 'rank_multiple_nonparametric',
            'cd_diagram', 'get_sorted_rank_groups', 'ci_plot']
 
-RankResult = namedtuple('RankResult', (
+
+class RankResult(namedtuple('RankResult', (
     'rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc', 'all_normal', 'pvals_shapiro', 'homoscedastic', 'pval_homogeneity',
-    'homogeneity_test', 'alpha', 'alpha_normality', 'num_samples'))
+    'homogeneity_test', 'alpha', 'alpha_normality', 'num_samples'))):
+    __slots__ = ()
+
+    def __str__(self):
+        return 'RankResult(rankdf=\n%s\n' \
+               'pvalue=%s\n' \
+               'cd=%s\n' \
+               'omnibus=%s\n' \
+               'posthoc=%s\n' \
+               'all_normal=%s\n' \
+               'pvals_shapiro=%s\n' \
+               'homoscedastic=%s\n' \
+               'pval_homogeneity=%s\n' \
+               'homogeneity_test=%s\n' \
+               'alpha=%s\n' \
+               'alpha_normality=%s\n' \
+               'num_samples=%s)' % (self.rankdf, self.pvalue, self.cd, self.omnibus, self.posthoc, self.all_normal,
+                                    self.pvals_shapiro, self.homoscedastic, self.pval_homogeneity,
+                                    self.homogeneity_test, self.alpha, self.alpha_normality, self.num_samples)
+
+
+class _ComparisonResult(namedtuple('ComparisonResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc'))):
+    __slots__ = ()
+
+    def __str__(self):
+        return '_ComparisonResult(rankdf=\n%s\n' \
+               'pvalue=%s\n' \
+               'cd=%s\n' \
+               'omnibus=%s\n' \
+               'posthoc=%s)' % (self.rankdf, self.pvalue, self.cd, self.omnibus, self.posthoc)
+
 
 def _cohen_d(x, y):
     """
@@ -103,9 +134,6 @@ def _confidence_interval(data, alpha, is_normal=True):
         lower = sorted_data.iloc[int(round(r))]
         upper = sorted_data.iloc[int(round(s))]
         return lower, upper
-
-
-_ComparisonResult = namedtuple('ComparisonResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc'))
 
 
 def rank_two(data, alpha, verbose, all_normal, order):
