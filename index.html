@@ -52,6 +52,8 @@
     <ul class="current">
     <li class="toctree-l2"><a class="reference internal" href="#summary">Summary</a>
     </li>
+    <li class="toctree-l2"><a class="reference internal" href="#how-to-cite-autorank">How to cite Autorank</a>
+    </li>
     <li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#api-documentation">API Documentation</a>
@@ -109,7 +111,8 @@
 <p><a href="https://github.com/sherbold/autorank/actions"><img alt="Actions Status" src="https://github.com/sherbold/autorank/workflows/Build/badge.svg" /></a>
 <a href="https://codecov.io/gh/sherbold/autorank"><img alt="codecov" src="https://codecov.io/gh/sherbold/autorank/branch/master/graph/badge.svg" /></a>
 <a href="https://lgtm.com/projects/g/sherbold/autorank/alerts/"><img alt="Total alerts" src="https://img.shields.io/lgtm/alerts/g/sherbold/autorank.svg?logo=lgtm&amp;logoWidth=18" /></a>
-<a href="https://lgtm.com/projects/g/sherbold/autorank/context:python"><img alt="Language grade: Python" src="https://img.shields.io/lgtm/grade/python/g/sherbold/autorank.svg?logo=lgtm&amp;logoWidth=18" /></a></p>
+<a href="https://lgtm.com/projects/g/sherbold/autorank/context:python"><img alt="Language grade: Python" src="https://img.shields.io/lgtm/grade/python/g/sherbold/autorank.svg?logo=lgtm&amp;logoWidth=18" /></a>
+<a href="https://doi.org/10.21105/joss.02173"><img alt="DOI" src="https://joss.theoj.org/papers/10.21105/joss.02173/status.svg" /></a></p>
 <h2 id="summary">Summary</h2>
 <p>Autorank is a simple Python package with one task: simplify the comparison between (multiple) paired populations. This
 is, for example, required if the performance different machine learning algorithms or simulations should be compared on
@@ -131,6 +134,21 @@ appropriate.   </p>
 with a single function call. Additional functions allow the generation of appropriate plots, result tables, and even of
 a complete latex document. All that is required is the data about the populations is in a 
 <a href="https://pandas.pydata.org/">Pandas</a> dataframe.   </p>
+<h2 id="how-to-cite-autorank">How to cite Autorank</h2>
+<pre><code>@article{Herbold2020,
+  doi = {10.21105/joss.02173},
+  url = {https://doi.org/10.21105/joss.02173},
+  year = {2020},
+  publisher = {The Open Journal},
+  volume = {5},
+  number = {48},
+  pages = {2173},
+  author = {Steffen Herbold},
+  title = {Autorank: A Python package for automated ranking of classifiers},
+  journal = {Journal of Open Source Software}
+}
+</code></pre>
+
 <h2 id="installation">Installation</h2>
 <p>Autorank is available on PyPi and can be installed using pip.</p>
 <pre><code>pip install autorank
@@ -360,5 +378,5 @@ e.g., independent populations, or paired populations with unequal sample sizes. 
 
 <!--
 MkDocs version : 1.1
-Build Date UTC : 2020-04-14 13:52:08
+Build Date UTC : 2020-04-14 16:58:54
 -->
