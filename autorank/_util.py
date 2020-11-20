@@ -10,12 +10,13 @@ from statsmodels.stats.anova import AnovaRM
 from collections import namedtuple
 
 __all__ = ['rank_two', 'rank_multiple_normal_homoscedastic', 'RankResult', 'rank_multiple_nonparametric',
-           'cd_diagram', 'get_sorted_rank_groups', 'ci_plot']
+           'cd_diagram', 'get_sorted_rank_groups', 'ci_plot', 'test_normality']
 
 
-class RankResult(namedtuple('RankResult', (
-    'rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc', 'all_normal', 'pvals_shapiro', 'homoscedastic', 'pval_homogeneity',
-    'homogeneity_test', 'alpha', 'alpha_normality', 'num_samples'))):
+class RankResult(namedtuple('RankResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc', 'all_normal',
+                                           'pvals_shapiro', 'homoscedastic', 'pval_homogeneity', 'homogeneity_test',
+                                           'alpha', 'alpha_normality', 'num_samples', 'posterior_matrix',
+                                           'decision_matrix'))):
     __slots__ = ()
 
     def __str__(self):
@@ -47,15 +48,43 @@ class _ComparisonResult(namedtuple('ComparisonResult', ('rankdf', 'pvalue', 'cd'
                'posthoc=%s)' % (self.rankdf, self.pvalue, self.cd, self.omnibus, self.posthoc)
 
 
-def _cohen_d(x, y):
+def _pooled_std(x, y):
     """
-    Calculate the effect size using Cohen's d
+    Calculate the pooled standard deviation of x and y
     """
     nx = len(x)
     ny = len(y)
     dof = nx + ny - 2
-    return (np.mean(x) - np.mean(y)) / np.sqrt(
-        ((nx - 1) * np.std(x, ddof=1) ** 2 + (ny - 1) * np.std(y, ddof=1) ** 2) / dof)
+    return np.sqrt(((nx - 1) * np.std(x, ddof=1) ** 2 + (ny - 1) * np.std(y, ddof=1) ** 2) / dof)
+
+
+def _pooled_mad(x, y):
+    """
+    Calculate the pooled median absolute deviation of x and y
+    """
+    nx = len(x)
+    ny = len(y)
+    dof = nx + ny - 2
+    mad_x = stats.median_absolute_deviation(x)
+    mad_y = stats.median_absolute_deviation(y)
+    return np.sqrt(((nx - 1) * mad_x ** 2 + (ny - 1) * mad_y ** 2) / dof)
+
+
+def _cohen_d(x, y):
+    """
+    Calculate the effect size using Cohen's d
+    """
+    return (np.mean(x) - np.mean(y)) / _pooled_std(x, y)
+
+
+def _akinshin_gamma(x, y):
+    """
+    Calculate the effect size using a non-parametric variant of Cohen's d that replaces the pooled
+    standard deviation with the pooled median absolute devision. This metric is based on this blog
+    post (no publication yet).
+    https://aakinshin.net/posts/nonparametric-effect-size/
+    """
+    return (np.median(x) - np.median(y)) / _pooled_mad(x, y)
 
 
 def _cliffs_delta(x, y):
@@ -85,7 +114,7 @@ def _effect_level(effect_size, method='cohend'):
     """
     if not isinstance(method, str):
         raise TypeError('method must be of type str')
-    if method not in ['cohend', 'cliffdelta']:
+    if method not in ['cohend', 'cliffdelta', 'akinshin_gamma']:
         raise ValueError("method must be one of the following strings: 'cohend', 'cliffdelta'")
     effect_size = abs(effect_size)
     if method == 'cliffdelta':
@@ -97,7 +126,7 @@ def _effect_level(effect_size, method='cohend'):
             return 'medium'
         else:
             return 'large'
-    if method == 'cohend':
+    if method == 'cohend' or method=='akinshin_gamma':
         if effect_size < 0.2:
             return 'negligible'
         elif effect_size < 0.5:
@@ -134,6 +163,20 @@ def _confidence_interval(data, alpha, is_normal=True):
         lower = sorted_data.iloc[int(round(r))]
         upper = sorted_data.iloc[int(round(s))]
         return lower, upper
+
+
+def _posterior_decision(probabilities, alpha):
+    """
+    calculate decision based on probabilities and desired significance
+    """
+    if probabilities[0] >= 1 - alpha:
+        return 'smaller'
+    elif probabilities[1] >= 1 - alpha:
+        return 'equal'
+    elif probabilities[2] >= 1 - alpha:
+        return 'larger'
+    else:
+        return 'inconclusive'
 
 
 def rank_two(data, alpha, verbose, all_normal, order):
@@ -221,14 +264,14 @@ def rank_multiple_nonparametric(data, alpha, verbose, all_normal, order):
     return _ComparisonResult(rankdf, pval, cd, 'friedman', 'nemenyi')
 
 
-def _create_result_df_skeleton(data, alpha, all_normal, order):
+def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='meanrank'):
     """
     Creates data frame for results. CI may be left empty in case alpha is None
     """
     if all_normal:
         effsize_method = 'cohend'
     else:
-        effsize_method = 'cliffdelta'
+        effsize_method = 'akinshin_gamma'
 
     asc = None
     if order == 'descending':
@@ -245,15 +288,26 @@ def _create_result_df_skeleton(data, alpha, all_normal, order):
         rankdf = pd.DataFrame(index=meanranks.index,
                               columns=['meanrank', 'median', 'mad', 'ci_lower', 'ci_upper', 'effect_size', 'magnitude'])
     rankdf['meanrank'] = meanranks
+
+    # we must first calculate the central tendencies and variability, so we could sort by them
+    if effsize_method == 'cohend':
+        rankdf['mean'] = data.mean().reindex(meanranks.index)
+        rankdf['std'] = data.std().reindex(meanranks.index)
+    elif effsize_method == 'cliffdelta' or effsize_method == 'akinshin_gamma':
+        rankdf['median'] = data.median().reindex(meanranks.index)
+        for population in rankdf.index:
+            rankdf.at[population, 'mad'] = stats.median_absolute_deviation(data.loc[:, population])
+
+    if order_column != 'meanrank':
+        rankdf = rankdf.reindex(rankdf[order_column].sort_values(ascending=asc).index)
+
     for population in rankdf.index:
         if effsize_method == 'cohend':
             effsize = _cohen_d(data.loc[:, rankdf.index[0]], data.loc[:, population])
-            rankdf.at[population, 'mean'] = data.loc[:, population].mean()
-            rankdf.at[population, 'std'] = data.loc[:, population].std()
         elif effsize_method == 'cliffdelta':
             effsize = _cliffs_delta(data.loc[:, rankdf.index[0]], data.loc[:, population])
-            rankdf.at[population, 'median'] = data.loc[:, population].median()
-            rankdf.at[population, 'mad'] = stats.median_absolute_deviation(data.loc[:, population])
+        elif effsize_method == 'akinshin_gamma':
+            effsize = _akinshin_gamma(data.loc[:, rankdf.index[0]], data.loc[:, population])
         else:
             raise ValueError("Unknown effsize method, this should not be possible.")
         rankdf.at[population, 'effect_size'] = effsize
@@ -263,6 +317,7 @@ def _create_result_df_skeleton(data, alpha, all_normal, order):
                                                 is_normal=all_normal)
             rankdf.at[population, 'ci_lower'] = lower
             rankdf.at[population, 'ci_upper'] = upper
+
     return rankdf
 
 
@@ -434,3 +489,20 @@ def ci_plot(result, reverse, ax, width):
     ax.set_yticklabels(names.to_list())
     ax.set_title('%.1f%% Confidence Intervals of the Mean' % ((1 - result.alpha) * 100))
     return ax
+
+
+def test_normality(data, alpha, verbose):
+    all_normal = True
+    pvals_shapiro = []
+    for column in data.columns:
+        w, pval_shapiro = stats.shapiro(data[column])
+        pvals_shapiro.append(pval_shapiro)
+        if pval_shapiro < alpha:
+            all_normal = False
+            if verbose:
+                print("Rejecting null hypothesis that data is normal for column %s (p=%f<%f)" % (
+                    column, pval_shapiro, alpha))
+        elif verbose:
+            print("Fail to reject null hypothesis that data is normal for column %s (p=%f>=%f)" % (
+                column, pval_shapiro, alpha))
+    return all_normal, pvals_shapiro

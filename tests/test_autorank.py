@@ -399,3 +399,37 @@ class TestAutorank(unittest.TestCase):
         print("----BEGIN LATEX----")
         latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
+
+    def test_bayes_normal_homoscedactic_two(self):
+        std = 0.15
+        means = [0.3, 0.34]
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
+        res = bayesrank(data, rope=0.01, nsamples=100, verbose=self.verbose, order='ascending') # check if call works with ascending
+        print("----BEGIN LATEX----")
+        latex_table(res)
+        # latex_report(res, generate_plots=False, figure_path=self.tmp_dir.name)
+        print("----END LATEX----")
+
+    def test_bayes_nonnormal_heteroscedactic_no_difference(self):
+        stds = [0.1, 0.1, 0.5, 0.1, 0.05, 0.05]
+        means = [0.9, 0.9, 0.9, 0.9, 0.9, 0.9]
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, stds[i], self.sample_size).clip(0, 1)
+        res = bayesrank(data, rope=0.01, nsamples=100, verbose=self.verbose)
+        self.assertFalse(res.all_normal)
+        self.assertIsNone(res.homoscedastic)
+        self.assertEqual(res.omnibus, 'bayes')
+        self.assertEqual(res.posthoc, 'bayes')
+        try:
+            plot_stats(res)
+            self.fail("ValueError expected")
+        except ValueError:
+            pass
+
+        create_report(res)
+        print("----BEGIN LATEX----")
+        latex_table(res)
+        print("----END LATEX----")
