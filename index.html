@@ -148,18 +148,15 @@ a complete latex document. All that is required is the data about the population
   journal = {Journal of Open Source Software}
 }
 </code></pre>
-
 <h2 id="installation">Installation</h2>
 <p>Autorank is available on PyPi and can be installed using pip.</p>
 <pre><code>pip install autorank
 </code></pre>
-
 <p>You can also clone this repository and install the latest development version (requires git and setuptools).</p>
 <pre><code>git clone https://github.com/sherbold/autorank
 cd autorank
 python setup.py install
 </code></pre>
-
 <h2 id="api-documentation">API Documentation</h2>
 <p>You can find the API documentation of the current master of Autorank
 <a href="https://sherbold.github.io/autorank/autorank/">online</a>.</p>
@@ -196,7 +193,7 @@ the calculation of the effect sizes, and the calculation of the confidence inter
 HSD).</p>
 <h2 id="usage-example">Usage Example</h2>
 <p>The following example shows the usage of <code>autorank</code>. First, we import the functions from autorank and create some data. </p>
-<pre><code class="python">import numpy as np
+<pre><code class="language-python">import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from autorank import autorank, plot_stats, create_report, latex_table
@@ -210,13 +207,11 @@ data = pd.DataFrame()
 for i, mean in enumerate(means):
     data['pop_%i' % i] = np.random.normal(mean, std, sample_size).clip(0, 1)
 </code></pre>
-
 <p>The statistical analysis of the data only requires a single command. As a result, you get a named tuple with all
 relevant information from the statistical analysis conducted.  </p>
-<pre><code class="python">result = autorank(data, alpha=0.05, verbose=False)
+<pre><code class="language-python">result = autorank(data, alpha=0.05, verbose=False)
 print(result)
 </code></pre>
-
 <p>Output: </p>
 <pre><code>RankResult(rankdf=
        meanrank    median       mad  ci_lower  ci_upper  effect_size    mangitude
@@ -240,12 +235,10 @@ alpha=0.05,
 alpha_normality=0.008333333333333333, 
 num_samples=50)
 </code></pre>
-
 <p>You can go ahead and use this tuple to create your own report about the statistical analysis. Alternatively, you can use
 autorank for this task.  </p>
-<pre><code class="python">create_report(result)
+<pre><code class="language-python">create_report(result)
 </code></pre>
-
 <p>Output:</p>
 <pre><code>The statistical analysis was conducted for 6 populations with 50 paired samples.
 The family-wise significance level of the tests is alpha=0.050.
@@ -265,20 +258,17 @@ statistically significant difference between the median values of the population
 Based on the post-hoc Nemenyi test, we assume that there are no significant differences within the following groups: 
 pop_5, pop_4, and pop_3; pop_2 and pop_1; pop_1 and pop_0. All other differences are significant.
 </code></pre>
-
 <p>Our you could use Autorank to generate a plot that visualizes the statistical analysis. Autorank creates plots of the
 confidence interval in case of the paired t-test and repeated measures ANOVA and a critical distance diagram for the
 post-hoc Nemenyi test. </p>
-<pre><code class="python">plot_stats(result)
+<pre><code class="language-python">plot_stats(result)
 plt.show()
 </code></pre>
-
 <p>For the above example, the following plot is created:</p>
 <p><img alt="CD Diagram" src="examples/cd_diagram.png" /></p>
 <p>To further support reporting in scholarly article, Autorank can also generate a latex table with the relevant results. </p>
-<pre><code class="python">latex_table(result)
+<pre><code class="language-python">latex_table(result)
 </code></pre>
-
 <p>Output:</p>
 <pre><code>\begin{table}[h]
 \centering
@@ -298,7 +288,6 @@ pop\_0 &amp; 5.400 &amp; 0.130 &amp; 0.192 &amp;  [0.000, 0.349] &amp;     0.919
 \label{tbl:stat_results}
 \end{table}
 </code></pre>
-
 <p>The rendered table looks like this (may change depending on the class of the document).</p>
 <p><img alt="Table" src="examples/table.png" /></p>
 <h2 id="creating-a-local-developer-environment">Creating a Local Developer Environment</h2>
@@ -310,11 +299,9 @@ python3 -m venv .
 source bin/activate
 pip install .
 </code></pre>
-
 <p>You can run the tests to check if everything works. </p>
 <pre><code>python -m unittest
 </code></pre>
-
 <h2 id="contributing">Contributing</h2>
 <p>Contributions to Autorank are welcome.</p>
 <ul>
@@ -377,6 +364,6 @@ e.g., independent populations, or paired populations with unequal sample sizes. 
 </html>
 
 <!--
-MkDocs version : 1.1
-Build Date UTC : 2020-04-14 16:58:54
+MkDocs version : 1.1.2
+Build Date UTC : 2020-11-23 09:13:21.493088+00:00
 -->

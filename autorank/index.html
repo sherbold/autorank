@@ -89,9 +89,8 @@
               
                 <h1 id="autorank.autorank">autorank</h1>
 
-<pre><code class="python">autorank(data, alpha=0.05, verbose=False, order='descending')
+<pre><code class="language-python">autorank(data, alpha=0.05, verbose=False, order='descending')
 </code></pre>
-
 <p>Automatically compares populations defined in a block-design data frame. Each column in the data frame contains
 the samples for one population. The data must not contain any NaNs. The data must have at least five measurements,
 i.e., rows. The current version is only reliable for less than 5000 measurements.</p>
@@ -164,9 +163,8 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
     Order of the central tendencies used for ranking.</p>
 <h1 id="autorank.create_report">create_report</h1>
 
-<pre><code class="python">create_report(result, *, decimal_places)
+<pre><code class="language-python">create_report(result, *, decimal_places)
 </code></pre>
-
 <p>Prints a report about the statistical analysis.</p>
 <p><strong>Parameters</strong></p>
 <p>result (RankResult):
@@ -175,9 +173,8 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
     Number of decimal places that are used for the report.</p>
 <h1 id="autorank.plot_stats">plot_stats</h1>
 
-<pre><code class="python">plot_stats(result, *, allow_insignificant, ax, width)
+<pre><code class="language-python">plot_stats(result, *, allow_insignificant, ax, width)
 </code></pre>
-
 <p>Creates a plot that supports the analysis of the results of the statistical test. The plot depends on the
 statistical test that was used.
 - Creates a Confidence Interval (CI) plot for a paired t-test between two normal populations. The confidence
@@ -203,9 +200,8 @@ parameter allows the suppression of this exception and forces the creation of th
 <p>Axis with the plot. None if no plot was generated.</p>
 <h1 id="autorank.latex_table">latex_table</h1>
 
-<pre><code class="python">latex_table(result, *, decimal_places, label)
+<pre><code class="language-python">latex_table(result, *, decimal_places, label)
 </code></pre>
-
 <p>Creates a latex table from the results dataframe of the statistical analysis.</p>
 <p><strong>Parameters</strong></p>
 <p>result (RankResult):
@@ -216,10 +212,9 @@ parameter allows the suppression of this exception and forces the creation of th
     Label of the table. Defaults to 'tbl:stat_results' if None.</p>
 <h1 id="autorank.latex_report">latex_report</h1>
 
-<pre><code class="python">latex_report(result, *, decimal_places, prefix, generate_plots,
+<pre><code class="language-python">latex_report(result, *, decimal_places, prefix, generate_plots,
              figure_path, complete_document)
 </code></pre>
-
 <p>Creates a latex report of the statistical analysis.</p>
 <p><strong>Parameters</strong></p>
 <p>result (AutoRank):
