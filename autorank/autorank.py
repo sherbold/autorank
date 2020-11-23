@@ -628,10 +628,13 @@ def latex_report(result, *, decimal_places=3, prefix="", generate_plots=True, fi
 
 def bayesrank(data, alpha=0.05, rope=0.1, rope_mode='effsize', nsamples=50000, verbose=False, order='descending'):
     """
+    Work-in-progress
+    Since 1.1.0 (not yet released)
     TODO: Documentation
     TODO: handle rope=0
     TODO: refactor to remove dependencies on private functions from _util
     TODO: refactor to avoid local imports
+    TODO: possibly merge with autorank function to keep the "single function" interface
     """
     from baycomp import SignedRankTest
     from autorank._util import _create_result_df_skeleton, _pooled_mad, _pooled_std, _posterior_decision
