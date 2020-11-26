@@ -34,6 +34,7 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
+        print("BEGIN FREQUENTIST ANALYSIS")
         autorank(data, 0.05, self.verbose, order='ascending') # check if call works with ascending
         res = autorank(data, 0.05, self.verbose)
         self.assertTrue(res.all_normal)
@@ -44,7 +45,16 @@ class TestAutorank(unittest.TestCase):
         plt.draw()
         create_report(res)
         print("----BEGIN LATEX----")
-        print(self.tmp_dir)
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
+        print("----END LATEX----")
+        print()
+        print("BEGIN BAYESIAN ANALYSIS")
+        print()
+        res = bayesrank(data, alpha=0.05, nsamples=100, verbose=self.verbose)
+        self.assertTrue(res.all_normal)
+        self.assertEqual(res.omnibus, 'bayes')
+        create_report(res)
+        print("----BEGIN LATEX----")
         latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
 
@@ -70,6 +80,16 @@ class TestAutorank(unittest.TestCase):
         print("----BEGIN LATEX----")
         latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
+        print()
+        print("BEGIN BAYESIAN ANALYSIS")
+        print()
+        res = bayesrank(data, alpha=0.05, nsamples=100, verbose=self.verbose)
+        self.assertTrue(res.all_normal)
+        self.assertEqual(res.omnibus, 'bayes')
+        create_report(res)
+        print("----BEGIN LATEX----")
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
+        print("----END LATEX----")
 
     def test_autorank_nonnormal_homoscedactic_two(self):
         std = 0.3
@@ -83,6 +103,16 @@ class TestAutorank(unittest.TestCase):
         self.assertTrue(res.homoscedastic)
         self.assertEqual(res.omnibus, 'wilcoxon')
         self.assertTrue(res.pvalue<res.alpha)
+        create_report(res)
+        print("----BEGIN LATEX----")
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
+        print("----END LATEX----")
+        print()
+        print("BEGIN BAYESIAN ANALYSIS")
+        print()
+        res = bayesrank(data, alpha=0.05, nsamples=100, verbose=self.verbose)
+        self.assertFalse(res.all_normal)
+        self.assertEqual(res.omnibus, 'bayes')
         create_report(res)
         print("----BEGIN LATEX----")
         latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
@@ -110,6 +140,16 @@ class TestAutorank(unittest.TestCase):
         print("----BEGIN LATEX----")
         latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
+        print()
+        print("BEGIN BAYESIAN ANALYSIS")
+        print()
+        res = bayesrank(data, alpha=0.05, nsamples=100, verbose=self.verbose)
+        self.assertFalse(res.all_normal)
+        self.assertEqual(res.omnibus, 'bayes')
+        create_report(res)
+        print("----BEGIN LATEX----")
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
+        print("----END LATEX----")
 
     def test_autorank_normal_homsocedactic(self):
         std = 0.2
@@ -126,6 +166,16 @@ class TestAutorank(unittest.TestCase):
         self.assertTrue(res.pvalue < res.alpha)
         plot_stats(res)
         plt.draw()
+        create_report(res)
+        print("----BEGIN LATEX----")
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
+        print("----END LATEX----")
+        print()
+        print("BEGIN BAYESIAN ANALYSIS")
+        print()
+        res = bayesrank(data, alpha=0.05, nsamples=100, verbose=self.verbose)
+        self.assertTrue(res.all_normal)
+        self.assertEqual(res.omnibus, 'bayes')
         create_report(res)
         print("----BEGIN LATEX----")
         latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
@@ -154,6 +204,16 @@ class TestAutorank(unittest.TestCase):
         print("----BEGIN LATEX----")
         latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
+        print()
+        print("BEGIN BAYESIAN ANALYSIS")
+        print()
+        res = bayesrank(data, alpha=0.05, nsamples=100, verbose=self.verbose)
+        self.assertTrue(res.all_normal)
+        self.assertEqual(res.omnibus, 'bayes')
+        create_report(res)
+        print("----BEGIN LATEX----")
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
+        print("----END LATEX----")
 
     def test_autorank_normal_heteroscedactic(self):
         stds = [0.05, 0.1, 0.5, 0.1, 0.05, 0.05]
@@ -170,6 +230,16 @@ class TestAutorank(unittest.TestCase):
         self.assertTrue(res.pvalue < res.alpha)
         plot_stats(res)
         plt.draw()
+        create_report(res)
+        print("----BEGIN LATEX----")
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
+        print("----END LATEX----")
+        print()
+        print("BEGIN BAYESIAN ANALYSIS")
+        print()
+        res = bayesrank(data, alpha=0.05, nsamples=100, verbose=self.verbose)
+        self.assertTrue(res.all_normal)
+        self.assertEqual(res.omnibus, 'bayes')
         create_report(res)
         print("----BEGIN LATEX----")
         latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
@@ -198,6 +268,16 @@ class TestAutorank(unittest.TestCase):
         print("----BEGIN LATEX----")
         latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
+        print()
+        print("BEGIN BAYESIAN ANALYSIS")
+        print()
+        res = bayesrank(data, alpha=0.05, nsamples=100, verbose=self.verbose)
+        self.assertTrue(res.all_normal)
+        self.assertEqual(res.omnibus, 'bayes')
+        create_report(res)
+        print("----BEGIN LATEX----")
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
+        print("----END LATEX----")
 
     def test_autorank_nonnormal_homoscedactic(self):
         std = 0.3
@@ -214,6 +294,16 @@ class TestAutorank(unittest.TestCase):
         self.assertTrue(res.pvalue < res.alpha)
         plot_stats(res)
         plt.draw()
+        create_report(res)
+        print("----BEGIN LATEX----")
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
+        print("----END LATEX----")
+        print()
+        print("BEGIN BAYESIAN ANALYSIS")
+        print()
+        res = bayesrank(data, alpha=0.05, nsamples=100, verbose=self.verbose)
+        self.assertFalse(res.all_normal)
+        self.assertEqual(res.omnibus, 'bayes')
         create_report(res)
         print("----BEGIN LATEX----")
         latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
@@ -242,6 +332,16 @@ class TestAutorank(unittest.TestCase):
         print("----BEGIN LATEX----")
         latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
+        print()
+        print("BEGIN BAYESIAN ANALYSIS")
+        print()
+        res = bayesrank(data, alpha=0.05, nsamples=100, verbose=self.verbose)
+        self.assertFalse(res.all_normal)
+        self.assertEqual(res.omnibus, 'bayes')
+        create_report(res)
+        print("----BEGIN LATEX----")
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
+        print("----END LATEX----")
 
     def test_autorank_nonnormal_heteroscedactic(self):
         stds = [0.1, 0.1, 0.5, 0.1, 0.05, 0.05]
@@ -258,6 +358,16 @@ class TestAutorank(unittest.TestCase):
         self.assertTrue(res.pvalue < res.alpha)
         plot_stats(res)
         plt.draw()
+        create_report(res)
+        print("----BEGIN LATEX----")
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
+        print("----END LATEX----")
+        print()
+        print("BEGIN BAYESIAN ANALYSIS")
+        print()
+        res = bayesrank(data, alpha=0.05, nsamples=100, verbose=self.verbose)
+        self.assertFalse(res.all_normal)
+        self.assertEqual(res.omnibus, 'bayes')
         create_report(res)
         print("----BEGIN LATEX----")
         latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
@@ -282,6 +392,16 @@ class TestAutorank(unittest.TestCase):
         except ValueError:
             pass
         plot_stats(res, allow_insignificant=True)
+        create_report(res)
+        print("----BEGIN LATEX----")
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
+        print("----END LATEX----")
+        print()
+        print("BEGIN BAYESIAN ANALYSIS")
+        print()
+        res = bayesrank(data, alpha=0.05, nsamples=100, verbose=self.verbose)
+        self.assertFalse(res.all_normal)
+        self.assertEqual(res.omnibus, 'bayes')
         create_report(res)
         print("----BEGIN LATEX----")
         latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
@@ -398,39 +518,6 @@ class TestAutorank(unittest.TestCase):
         create_report(res)
         print("----BEGIN LATEX----")
         latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
-        print("----END LATEX----")
-
-    def test_bayes_normal_homoscedactic_two(self):
-        std = 0.15
-        means = [0.3, 0.34]
-        data = pd.DataFrame()
-        for i, mean in enumerate(means):
-            data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
-        res = bayesrank(data, rope=0.01, nsamples=100, verbose=self.verbose, order='ascending') # check if call works with ascending
-        print("----BEGIN LATEX----")
-        latex_report(res, generate_plots=False, figure_path=self.tmp_dir.name)
-        print("----END LATEX----")
-
-    def test_bayes_nonnormal_heteroscedactic_no_difference(self):
-        stds = [0.1, 0.1, 0.5, 0.1, 0.05, 0.05]
-        means = [0.9, 0.9, 0.9, 0.9, 0.9, 0.9]
-        data = pd.DataFrame()
-        for i, mean in enumerate(means):
-            data['pop_%i' % i] = np.random.normal(mean, stds[i], self.sample_size).clip(0, 1)
-        res = bayesrank(data, rope=0.01, nsamples=100, verbose=self.verbose)
-        self.assertFalse(res.all_normal)
-        self.assertIsNone(res.homoscedastic)
-        self.assertEqual(res.omnibus, 'bayes')
-        self.assertEqual(res.posthoc, 'bayes')
-        try:
-            plot_stats(res)
-            self.fail("ValueError expected")
-        except ValueError:
-            pass
-
-        create_report(res)
-        print("----BEGIN LATEX----")
-        latex_report(res)
         print("----END LATEX----")
 
     def test_bayes_real_world(self):
