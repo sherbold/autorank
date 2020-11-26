@@ -16,7 +16,7 @@ __all__ = ['rank_two', 'rank_multiple_normal_homoscedastic', 'RankResult', 'rank
 class RankResult(namedtuple('RankResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc', 'all_normal',
                                            'pvals_shapiro', 'homoscedastic', 'pval_homogeneity', 'homogeneity_test',
                                            'alpha', 'alpha_normality', 'num_samples', 'posterior_matrix',
-                                           'decision_matrix'))):
+                                           'decision_matrix', 'rope', 'rope_mode'))):
     __slots__ = ()
 
     def __str__(self):
@@ -32,9 +32,14 @@ class RankResult(namedtuple('RankResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 
                'homogeneity_test=%s\n' \
                'alpha=%s\n' \
                'alpha_normality=%s\n' \
-               'num_samples=%s)' % (self.rankdf, self.pvalue, self.cd, self.omnibus, self.posthoc, self.all_normal,
-                                    self.pvals_shapiro, self.homoscedastic, self.pval_homogeneity,
-                                    self.homogeneity_test, self.alpha, self.alpha_normality, self.num_samples)
+               'num_samples=%s\n' \
+               'posterior_matrix=\n%s\n' \
+               'decision_matrix=\n%\n' \
+               'rope=%s\n' \
+               'rope_mode=%s)' % (self.rankdf, self.pvalue, self.cd, self.omnibus, self.posthoc, self.all_normal,
+                                  self.pvals_shapiro, self.homoscedastic, self.pval_homogeneity,
+                                  self.homogeneity_test, self.alpha, self.alpha_normality, self.num_samples,
+                                  self.posterior_matrix, self.decision_matrix, self.rope, self.rope_mode)
 
 
 class _ComparisonResult(namedtuple('ComparisonResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc'))):
@@ -126,7 +131,7 @@ def _effect_level(effect_size, method='cohend'):
             return 'medium'
         else:
             return 'large'
-    if method == 'cohend' or method=='akinshin_gamma':
+    if method == 'cohend' or method == 'akinshin_gamma':
         if effect_size < 0.2:
             return 'negligible'
         elif effect_size < 0.5:
@@ -492,6 +497,9 @@ def ci_plot(result, reverse, ax, width):
 
 
 def test_normality(data, alpha, verbose):
+    """
+    Tests if all populations are normal and return whether this is true and a list of p-values
+    """
     all_normal = True
     pvals_shapiro = []
     for column in data.columns:

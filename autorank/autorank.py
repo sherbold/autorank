@@ -175,7 +175,7 @@ def autorank(data, alpha=0.05, verbose=False, order='descending'):
             res = rank_multiple_nonparametric(data, alpha, verbose, all_normal, order)
 
     return RankResult(res.rankdf, res.pvalue, res.cd, res.omnibus, res.posthoc, all_normal, pvals_shapiro, var_equal,
-                      pval_homogeneity, homogeneity_test, alpha, alpha_normality, len(data), None, None)
+                      pval_homogeneity, homogeneity_test, alpha, alpha_normality, len(data), None, None, None, None)
 
 
 def plot_stats(result, *, allow_insignificant=False, ax=None, width=None):
@@ -371,10 +371,56 @@ def create_report(result, *, decimal_places=3):
             raise ValueError('Unknown omnibus test for difference in the central tendency: %s' % result.omnibus)
     else:
         if result.omnibus == 'bayes':
-            # TODO differentiate between all_normal and not (i.e., median or mean)
+            if result.all_normal:
+                central_tendency = 'mean value'
+                central_tendency_long = 'mean value (M)'
+                variability = 'standard deviation (SD)'
+                effect_size = 'd'
+            else:
+                central_tendency = 'median'
+                central_tendency_long = 'median (MD)'
+                variability = 'median absolute deviation (MAD)'
+                effect_size = 'gamma'
             print(
-                "We used a bayesian signed rank to determine differences between the mean values of the populations and"
-                "report the mean value (M) and the standard deviation (SD) for each population. ")
+                "We used a bayesian signed rank test to determine differences between the mean values of the "
+                "populations and report the %s and the %s for each population. We distinguish "
+                "between populations being pair-wise smaller, equal, or larger and make a decision for one "
+                "of these cases if we estimate that the posterior probability is at least "
+                "alpha=%.*f." % (central_tendency_long, variability, decimal_places, result.alpha))
+            if result.rope_mode=='effsize':
+                print('We used the effect size to define the region of practical equivalence (ROPE) around the %s '
+                      'dynamically as %.*f*%s.' % (central_tendency, decimal_places, result.rope, effect_size))
+            else:
+                print('We used a fixed value of %.*f to define the region of practical equivalence (ROPE) around the '
+                      '%s.' % (decimal_places, result.rope))
+            if set(['inconclusive']) == set(result.rankdf['decision']):
+                print("We failed to find any conclusive evidence for differences between the populations "
+                      "%s." % create_population_string(result.rankdf.index, with_stats=True))
+            elif set(['equal']) == set(result.rankdf['decision']):
+                print("All populations are equal, i.e., the are no significant and practically relevant differences "
+                      "between the populations %s." % create_population_string(result.rankdf.index, with_stats=True))
+            elif set(['equal', 'inconclusive']) == set(result.rankdf['decision']):
+                print("The populations %s are all either equal or the results of the analysis are inconclusive.")
+                print(result.decision_matrix)
+            else:
+                print("We found significant and practically relevant differences between the populations "
+                      "%s." % create_population_string(result.rankdf.index, with_stats=True))
+                for i in range(len(result.rankdf)):
+                    if len(result.rankdf.index[result.decision_matrix.iloc[i, :] == 'smaller']) > 0:
+                        print('The %s of the population %s is larger than of the populations '
+                              '%s.' % (central_tendency, result.rankdf.index[i],
+                                       create_population_string(
+                                           result.rankdf.index[result.decision_matrix.iloc[i, :] == 'smaller'])))
+                equal_pairs = []
+                for i in range(len(result.rankdf)):
+                    for j in range(i+1, len(result.rankdf)):
+                        if result.decision_matrix.iloc[i, j] == 'equal':
+                            equal_pairs.append(result.rankdf.index[i] + ' and ' + result.rankdf.index[j])
+                if len(equal_pairs) > 0:
+                    equal_pairs_str = create_population_string(equal_pairs).replace(',', ';')
+                    print('The following pairs of populations are equal: %s.' % equal_pairs_str)
+                if 'inconclusive' in set(result.rankdf['decision']):
+                    print('All other differences are inconclusive.')
         else:
             if result.all_normal:
                 if result.homoscedastic:
@@ -600,7 +646,7 @@ def latex_report(result, *, decimal_places=3, prefix="", generate_plots=True, fi
         latex_table(result, decimal_places=decimal_places, label='tbl:%sstat_results' % prefix)
         print()
 
-    if generate_plots and result.pvalue < result.alpha and result.omnibus != 'wilcoxon':
+    if result.omnibus != 'wilcoxon' and result.omnibus != 'bayes' and generate_plots and result.pvalue < result.alpha:
         # only include plots if the results are significant
         plot_stats(result)
         if len(figure_path) > 0 and not figure_path.endswith("/"):
@@ -696,18 +742,18 @@ def bayesrank(data, alpha=0.05, rope=0.1, rope_mode='effsize', nsamples=50000, v
             if rope_mode == 'effsize':
                 # half the size of a small effect size following Kruschke (2018)
                 if all_normal:
-                    cur_rope = 0.1*_pooled_std(reordered_data.iloc[:,i], reordered_data.iloc[:,j])
+                    cur_rope = rope*_pooled_std(reordered_data.iloc[:, i], reordered_data.iloc[:,j])
                 else:
-                    cur_rope = 0.1*_pooled_mad(reordered_data.iloc[:, i], reordered_data.iloc[:, j])
+                    cur_rope = rope*_pooled_mad(reordered_data.iloc[:, i], reordered_data.iloc[:, j])
             elif rope_mode == 'absolute':
                 cur_rope = rope
             else:
                 raise ValueError("Unknown rope_mode method, this should not be possible.")
-
             srt = SignedRankTest(x=reordered_data.iloc[:,i], y=reordered_data.iloc[:,j], rope=cur_rope, nsamples=nsamples)
             posterior_probabilities = srt.probs()
             posterior_matrix.iloc[i, j] = posterior_probabilities
             decision_matrix.iloc[i,j] = _posterior_decision(posterior_probabilities, alpha)
+            decision_matrix.iloc[j,i] = _posterior_decision(posterior_probabilities[::-1], alpha)
             if i == 0:
                 # comparison with "best"
                 result_df.loc[result_df.index[j], 'p_equal'] = posterior_probabilities[1]
@@ -715,4 +761,4 @@ def bayesrank(data, alpha=0.05, rope=0.1, rope_mode='effsize', nsamples=50000, v
                 result_df.loc[result_df.index[j], 'decision'] = _posterior_decision(posterior_probabilities, alpha)
 
     return RankResult(result_df, None, None, 'bayes', 'bayes', all_normal, pvals_shapiro, None, None, None, alpha,
-                      alpha_normality, len(data), posterior_matrix, decision_matrix)
+                      alpha_normality, len(data), posterior_matrix, decision_matrix, rope, rope_mode=rope_mode)
