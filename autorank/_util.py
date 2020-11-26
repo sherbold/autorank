@@ -288,7 +288,7 @@ def rank_multiple_nonparametric(data, alpha, verbose, all_normal, order):
     return _ComparisonResult(rankdf, pval, cd, 'friedman', 'nemenyi')
 
 
-def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode):
+def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples):
     # TODO check if some outputs for the verbose mode would be helpful
     if all_normal:
         order_column = 'mean'

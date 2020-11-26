@@ -723,7 +723,7 @@ def bayesrank(data, alpha=0.05, rope=0.1, rope_mode='effsize', nsamples=50000, v
     # Check pre-conditions of statistical tests
     all_normal, pvals_shapiro = test_normality(data, alpha_normality, verbose)
 
-    res = rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode)
+    res = rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples)
 
     return RankResult(res.rankdf, None, None, 'bayes', 'bayes', all_normal, pvals_shapiro, None, None, None, alpha,
                       alpha_normality, len(data), res.posterior_matrix, res.decision_matrix, rope, rope_mode)
