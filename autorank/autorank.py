@@ -321,7 +321,64 @@ def create_report(result, *, decimal_places=3):
               "Therefore, we assume that not all populations are "
               "normal." % (population_term, create_population_string(not_normal, pvals=pvals)))
 
-    if len(result.rankdf) == 2:
+    if result.omnibus == 'bayes':
+        if result.all_normal:
+            central_tendency = 'mean value'
+            central_tendency_long = 'mean value (M)'
+            variability = 'standard deviation (SD)'
+            effect_size = 'd'
+        else:
+            central_tendency = 'median'
+            central_tendency_long = 'median (MD)'
+            variability = 'median absolute deviation (MAD)'
+            effect_size = 'gamma'
+        print(
+            "We used a bayesian signed rank test to determine differences between the mean values of the "
+            "populations and report the %s and the %s for each population. We distinguish "
+            "between populations being pair-wise smaller, equal, or larger and make a decision for one "
+            "of these cases if we estimate that the posterior probability is at least "
+            "alpha=%.*f." % (central_tendency_long, variability, decimal_places, result.alpha))
+        if result.rope_mode == 'effsize':
+            print(
+                'We used the effect size to define the region of practical equivalence (ROPE) around the %s '
+                'dynamically as %.*f*%s.' % (central_tendency, decimal_places, result.rope, effect_size))
+        else:
+            print(
+                'We used a fixed value of %.*f to define the region of practical equivalence (ROPE) around the '
+                '%s.' % (decimal_places, result.rope))
+        if set(['inconclusive']) == set(result.rankdf['decision']):
+            print("We failed to find any conclusive evidence for differences between the populations "
+                  "%s." % create_population_string(result.rankdf.index, with_stats=True))
+        elif set(['equal']) == set(result.rankdf['decision']):
+            print(
+                "All populations are equal, i.e., the are no significant and practically relevant differences "
+                "between the populations %s." % create_population_string(result.rankdf.index,
+                                                                         with_stats=True))
+        elif set(['equal', 'inconclusive']) == set(result.rankdf['decision']):
+            print(
+                "The populations %s are all either equal or the results of the analysis are inconclusive.")
+            print(result.decision_matrix)
+        else:
+            print("We found significant and practically relevant differences between the populations "
+                  "%s." % create_population_string(result.rankdf.index, with_stats=True))
+            for i in range(len(result.rankdf)):
+                if len(result.rankdf.index[result.decision_matrix.iloc[i, :] == 'smaller']) > 0:
+                    print('The %s of the population %s is larger than of the populations '
+                          '%s.' % (central_tendency, result.rankdf.index[i],
+                                   create_population_string(
+                                       result.rankdf.index[
+                                           result.decision_matrix.iloc[i, :] == 'smaller'])))
+            equal_pairs = []
+            for i in range(len(result.rankdf)):
+                for j in range(i + 1, len(result.rankdf)):
+                    if result.decision_matrix.iloc[i, j] == 'equal':
+                        equal_pairs.append(result.rankdf.index[i] + ' and ' + result.rankdf.index[j])
+            if len(equal_pairs) > 0:
+                equal_pairs_str = create_population_string(equal_pairs).replace(',', ';')
+                print('The following pairs of populations are equal: %s.' % equal_pairs_str)
+            if 'inconclusive' in set(result.rankdf['decision']):
+                print('All other differences are inconclusive.')
+    elif len(result.rankdf) == 2:
         print("No check for homogeneity was required because we only have two populations.")
         if result.omnibus == 'ttest':
             print("Because we have only two populations and both populations are normal, we use the t-test to "
@@ -367,164 +424,113 @@ def create_report(result, *, decimal_places=3):
                          create_population_string(result.rankdf.index[1], with_stats=True),
                          result.rankdf.index[0], result.rankdf.index[1],
                          result.rankdf.magnitude[1], decimal_places, result.rankdf.effect_size[1]))
+
         else:
             raise ValueError('Unknown omnibus test for difference in the central tendency: %s' % result.omnibus)
     else:
-        if result.omnibus == 'bayes':
-            if result.all_normal:
-                central_tendency = 'mean value'
-                central_tendency_long = 'mean value (M)'
-                variability = 'standard deviation (SD)'
-                effect_size = 'd'
+        if result.all_normal:
+            if result.homoscedastic:
+                print("We applied Bartlett's test for homogeneity and failed to reject the null hypothesis "
+                      "(p=%.*f) that the data is homoscedastic. Thus, we assume that our data is "
+                      "homoscedastic." % (decimal_places, result.pval_homogeneity))
             else:
-                central_tendency = 'median'
-                central_tendency_long = 'median (MD)'
-                variability = 'median absolute deviation (MAD)'
-                effect_size = 'gamma'
-            print(
-                "We used a bayesian signed rank test to determine differences between the mean values of the "
-                "populations and report the %s and the %s for each population. We distinguish "
-                "between populations being pair-wise smaller, equal, or larger and make a decision for one "
-                "of these cases if we estimate that the posterior probability is at least "
-                "alpha=%.*f." % (central_tendency_long, variability, decimal_places, result.alpha))
-            if result.rope_mode=='effsize':
-                print('We used the effect size to define the region of practical equivalence (ROPE) around the %s '
-                      'dynamically as %.*f*%s.' % (central_tendency, decimal_places, result.rope, effect_size))
-            else:
-                print('We used a fixed value of %.*f to define the region of practical equivalence (ROPE) around the '
-                      '%s.' % (decimal_places, result.rope))
-            if set(['inconclusive']) == set(result.rankdf['decision']):
-                print("We failed to find any conclusive evidence for differences between the populations "
-                      "%s." % create_population_string(result.rankdf.index, with_stats=True))
-            elif set(['equal']) == set(result.rankdf['decision']):
-                print("All populations are equal, i.e., the are no significant and practically relevant differences "
-                      "between the populations %s." % create_population_string(result.rankdf.index, with_stats=True))
-            elif set(['equal', 'inconclusive']) == set(result.rankdf['decision']):
-                print("The populations %s are all either equal or the results of the analysis are inconclusive.")
-                print(result.decision_matrix)
-            else:
-                print("We found significant and practically relevant differences between the populations "
-                      "%s." % create_population_string(result.rankdf.index, with_stats=True))
-                for i in range(len(result.rankdf)):
-                    if len(result.rankdf.index[result.decision_matrix.iloc[i, :] == 'smaller']) > 0:
-                        print('The %s of the population %s is larger than of the populations '
-                              '%s.' % (central_tendency, result.rankdf.index[i],
-                                       create_population_string(
-                                           result.rankdf.index[result.decision_matrix.iloc[i, :] == 'smaller'])))
-                equal_pairs = []
-                for i in range(len(result.rankdf)):
-                    for j in range(i+1, len(result.rankdf)):
-                        if result.decision_matrix.iloc[i, j] == 'equal':
-                            equal_pairs.append(result.rankdf.index[i] + ' and ' + result.rankdf.index[j])
-                if len(equal_pairs) > 0:
-                    equal_pairs_str = create_population_string(equal_pairs).replace(',', ';')
-                    print('The following pairs of populations are equal: %s.' % equal_pairs_str)
-                if 'inconclusive' in set(result.rankdf['decision']):
-                    print('All other differences are inconclusive.')
-        else:
-            if result.all_normal:
-                if result.homoscedastic:
-                    print("We applied Bartlett's test for homogeneity and failed to reject the null hypothesis "
-                          "(p=%.*f) that the data is homoscedastic. Thus, we assume that our data is "
-                          "homoscedastic." % (decimal_places, result.pval_homogeneity))
-                else:
-                    print("We applied Bartlett's test for homogeneity and reject the null hypothesis (p=%.*f) that the"
-                          "data is homoscedastic. Thus, we assume that our data is "
-                          "heteroscedastic." % (decimal_places, result.pval_homogeneity))
+                print("We applied Bartlett's test for homogeneity and reject the null hypothesis (p=%.*f) that the"
+                      "data is homoscedastic. Thus, we assume that our data is "
+                      "heteroscedastic." % (decimal_places, result.pval_homogeneity))
 
-            if result.omnibus == 'anova':
-                print("Because we have more than two populations and all populations are normal and homoscedastic, we use "
-                      "repeated measures ANOVA as omnibus "
-                      "test to determine if there are any significant differences between the mean values of the "
-                      "populations. If the results of the ANOVA test are significant, we use the post-hoc Tukey HSD test "
-                      "to infer which differences are significant. We report the mean value (M) and the standard deviation "
-                      "(SD) for each population. Populations are significantly different if their confidence intervals "
-                      "are not overlapping.")
-                if result.pvalue >= result.alpha:
-                    print("We failed to reject the null hypothesis (p=%.*f) of the repeated measures ANOVA that there is "
-                          "a difference between the mean values of the populations %s. Therefore, we "
-                          "assume that there is no statistically significant difference between the mean values of the "
-                          "populations." % (decimal_places, result.pvalue,
-                                            create_population_string(result.rankdf.index, with_stats=True)))
-                else:
-                    print("We reject the null hypothesis (p=%.*f) of the repeated measures ANOVA that there is "
-                          "a difference between the mean values of the populations %s. Therefore, we "
-                          "assume that there is a statistically significant difference between the mean values of the "
-                          "populations." % (decimal_places, result.pvalue,
-                                            create_population_string(result.rankdf.index, with_stats=True)))
-                    meanranks, names, groups = get_sorted_rank_groups(result, False)
-                    if len(groups) == 0:
-                        print("Based on post-hoc Tukey HSD test, we assume that all differences between the populations "
-                              "are significant.")
-                    else:
-                        groupstrs = []
-                        for group_range in groups:
-                            group = range(group_range[0], group_range[1] + 1)
-                            if len(group) == 1:
-                                cur_groupstr = names[group[0]]
-                            elif len(group) == 2:
-                                cur_groupstr = " and ".join([names[pop] for pop in group])
-                            else:
-                                cur_groupstr = ", ".join([names[pop] for pop in group[:-1]]) + ", and " + names[group[-1]]
-                            groupstrs.append(cur_groupstr)
-                        print("Based post-hoc Tukey HSD test, we assume that there are no significant differences within "
-                              "the following groups: %s. All other differences are significant." % ("; ".join(groupstrs)))
-                    print()
-            elif result.omnibus == 'friedman':
-                if result.all_normal:
-                    print("Because we have more than two populations and the populations are normal but heteroscedastic, "
-                          "we use the non-parametric Friedman test "
-                          "as omnibus test to determine if there are any significant differences between the mean values "
-                          "of the populations. We use the post-hoc Nemenyi test to infer which differences are "
-                          "significant. We report the mean value (M), the standard deviation (SD) and the mean rank (MR) "
-                          "among all populations over the samples. Differences between populations are significant, if the "
-                          "difference of the mean rank is greater than the critical distance CD=%.*f of the Nemenyi "
-                          "test." % (decimal_places, result.cd))
-                else:
-                    if len(not_normal) == 1:
-                        notnormal_str = 'one of them is'
-                    else:
-                        notnormal_str = 'some of them are'
-                    print("Because we have more than two populations and the populations and %s not normal, "
-                          "we use the non-parametric Friedman test "
-                          "as omnibus test to determine if there are any significant differences between the median values "
-                          "of the populations. We use the post-hoc Nemenyi test to infer which differences are "
-                          "significant. We report the median (MD), the median absolute deviation (MAD) and the mean rank "
-                          "(MR) among all populations over the samples. Differences between populations are significant, "
-                          "if the difference of the mean rank is greater than the critical distance CD=%.*f of the Nemenyi "
-                          "test." % (notnormal_str, decimal_places, result.cd))
-                if result.pvalue >= result.alpha:
-                    print("We failed to reject the null hypothesis (p=%.*f) of the Friedman test that there is no "
-                          "difference in the central tendency of the populations %s. Therefore, we "
-                          "assume that there is no statistically significant difference between the median values of the "
-                          "populations." % (decimal_places, result.pvalue,
-                                            create_population_string(result.rankdf.index, with_stats=True, with_rank=True)))
-                else:
-                    print("We reject the null hypothesis (p=%.*f) of the Friedman test that there is no "
-                          "difference in the central tendency of the populations %s. Therefore, we "
-                          "assume that there is a statistically significant difference between the median values of the "
-                          "populations." % (decimal_places, result.pvalue,
-                                            create_population_string(result.rankdf.index, with_stats=True, with_rank=True)))
-                    meanranks, names, groups = get_sorted_rank_groups(result, False)
-                    if len(groups) == 0:
-                        print("Based on the post-hoc Nemenyi test, we assume that all differences between the populations "
-                              "are significant.")
-                    else:
-                        groupstrs = []
-                        for group_range in groups:
-                            group = range(group_range[0], group_range[1] + 1)
-                            if len(group) == 1:
-                                cur_groupstr = names[group[0]]
-                            elif len(group) == 2:
-                                cur_groupstr = " and ".join([names[pop] for pop in group])
-                            else:
-                                cur_groupstr = ", ".join([names[pop] for pop in group[:-1]]) + ", and " + names[group[-1]]
-                            groupstrs.append(cur_groupstr)
-                        print("Based on the post-hoc Nemenyi test, we assume that there are no significant differences "
-                              "within the following groups: %s. All other differences are "
-                              "significant." % ("; ".join(groupstrs)))
+        if result.omnibus == 'anova':
+            print("Because we have more than two populations and all populations are normal and homoscedastic, we use "
+                  "repeated measures ANOVA as omnibus "
+                  "test to determine if there are any significant differences between the mean values of the "
+                  "populations. If the results of the ANOVA test are significant, we use the post-hoc Tukey HSD test "
+                  "to infer which differences are significant. We report the mean value (M) and the standard deviation "
+                  "(SD) for each population. Populations are significantly different if their confidence intervals "
+                  "are not overlapping.")
+            if result.pvalue >= result.alpha:
+                print("We failed to reject the null hypothesis (p=%.*f) of the repeated measures ANOVA that there is "
+                      "a difference between the mean values of the populations %s. Therefore, we "
+                      "assume that there is no statistically significant difference between the mean values of the "
+                      "populations." % (decimal_places, result.pvalue,
+                                        create_population_string(result.rankdf.index, with_stats=True)))
             else:
-                raise ValueError('Unknown omnibus test for difference in the central tendency: %s' % result.omnibus)
+                print("We reject the null hypothesis (p=%.*f) of the repeated measures ANOVA that there is "
+                      "a difference between the mean values of the populations %s. Therefore, we "
+                      "assume that there is a statistically significant difference between the mean values of the "
+                      "populations." % (decimal_places, result.pvalue,
+                                        create_population_string(result.rankdf.index, with_stats=True)))
+                meanranks, names, groups = get_sorted_rank_groups(result, False)
+                if len(groups) == 0:
+                    print("Based on post-hoc Tukey HSD test, we assume that all differences between the populations "
+                          "are significant.")
+                else:
+                    groupstrs = []
+                    for group_range in groups:
+                        group = range(group_range[0], group_range[1] + 1)
+                        if len(group) == 1:
+                            cur_groupstr = names[group[0]]
+                        elif len(group) == 2:
+                            cur_groupstr = " and ".join([names[pop] for pop in group])
+                        else:
+                            cur_groupstr = ", ".join([names[pop] for pop in group[:-1]]) + ", and " + names[group[-1]]
+                        groupstrs.append(cur_groupstr)
+                    print("Based post-hoc Tukey HSD test, we assume that there are no significant differences within "
+                          "the following groups: %s. All other differences are significant." % ("; ".join(groupstrs)))
+                print()
+        elif result.omnibus == 'friedman':
+            if result.all_normal:
+                print("Because we have more than two populations and the populations are normal but heteroscedastic, "
+                      "we use the non-parametric Friedman test "
+                      "as omnibus test to determine if there are any significant differences between the mean values "
+                      "of the populations. We use the post-hoc Nemenyi test to infer which differences are "
+                      "significant. We report the mean value (M), the standard deviation (SD) and the mean rank (MR) "
+                      "among all populations over the samples. Differences between populations are significant, if the "
+                      "difference of the mean rank is greater than the critical distance CD=%.*f of the Nemenyi "
+                      "test." % (decimal_places, result.cd))
+            else:
+                if len(not_normal) == 1:
+                    notnormal_str = 'one of them is'
+                else:
+                    notnormal_str = 'some of them are'
+                print("Because we have more than two populations and the populations and %s not normal, "
+                      "we use the non-parametric Friedman test "
+                      "as omnibus test to determine if there are any significant differences between the median values "
+                      "of the populations. We use the post-hoc Nemenyi test to infer which differences are "
+                      "significant. We report the median (MD), the median absolute deviation (MAD) and the mean rank "
+                      "(MR) among all populations over the samples. Differences between populations are significant, "
+                      "if the difference of the mean rank is greater than the critical distance CD=%.*f of the Nemenyi "
+                      "test." % (notnormal_str, decimal_places, result.cd))
+            if result.pvalue >= result.alpha:
+                print("We failed to reject the null hypothesis (p=%.*f) of the Friedman test that there is no "
+                      "difference in the central tendency of the populations %s. Therefore, we "
+                      "assume that there is no statistically significant difference between the median values of the "
+                      "populations." % (decimal_places, result.pvalue,
+                                        create_population_string(result.rankdf.index, with_stats=True, with_rank=True)))
+            else:
+                print("We reject the null hypothesis (p=%.*f) of the Friedman test that there is no "
+                      "difference in the central tendency of the populations %s. Therefore, we "
+                      "assume that there is a statistically significant difference between the median values of the "
+                      "populations." % (decimal_places, result.pvalue,
+                                        create_population_string(result.rankdf.index, with_stats=True, with_rank=True)))
+                meanranks, names, groups = get_sorted_rank_groups(result, False)
+                if len(groups) == 0:
+                    print("Based on the post-hoc Nemenyi test, we assume that all differences between the populations "
+                          "are significant.")
+                else:
+                    groupstrs = []
+                    for group_range in groups:
+                        group = range(group_range[0], group_range[1] + 1)
+                        if len(group) == 1:
+                            cur_groupstr = names[group[0]]
+                        elif len(group) == 2:
+                            cur_groupstr = " and ".join([names[pop] for pop in group])
+                        else:
+                            cur_groupstr = ", ".join([names[pop] for pop in group[:-1]]) + ", and " + names[group[-1]]
+                        groupstrs.append(cur_groupstr)
+                    print("Based on the post-hoc Nemenyi test, we assume that there are no significant differences "
+                          "within the following groups: %s. All other differences are "
+                          "significant." % ("; ".join(groupstrs)))
+        else:
+            raise ValueError('Unknown omnibus test for difference in the central tendency: %s' % result.omnibus)
 
 
 def latex_table(result, *, decimal_places=3, label=None):
