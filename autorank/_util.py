@@ -7,10 +7,11 @@ from scipy import stats
 from statsmodels.stats.libqsturng import qsturng
 from statsmodels.stats.multicomp import MultiComparison
 from statsmodels.stats.anova import AnovaRM
+from baycomp import SignedRankTest
 from collections import namedtuple
 
-__all__ = ['rank_two', 'rank_multiple_normal_homoscedastic', 'RankResult', 'rank_multiple_nonparametric',
-           'cd_diagram', 'get_sorted_rank_groups', 'ci_plot', 'test_normality']
+__all__ = ['rank_two', 'rank_multiple_normal_homoscedastic', 'rank_bayesian', 'RankResult',
+           'rank_multiple_nonparametric', 'cd_diagram', 'get_sorted_rank_groups', 'ci_plot', 'test_normality']
 
 
 class RankResult(namedtuple('RankResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc', 'all_normal',
@@ -51,6 +52,15 @@ class _ComparisonResult(namedtuple('ComparisonResult', ('rankdf', 'pvalue', 'cd'
                'cd=%s\n' \
                'omnibus=%s\n' \
                'posthoc=%s)' % (self.rankdf, self.pvalue, self.cd, self.omnibus, self.posthoc)
+
+
+class _BayesResult(namedtuple('BayesResult', ('rankdf', 'posterior_matrix', 'decision_matrix'))):
+    __slots__ = ()
+
+    def __str__(self):
+        return 'BayesResult(rankdf=\n%s\n' \
+               'posterior_matrix=%s\n' \
+               'decision_matrix=%s' % (self.rankdf, self.posterior_matrix, self.decision_matrix)
 
 
 def _pooled_std(x, y):
@@ -276,6 +286,49 @@ def rank_multiple_nonparametric(data, alpha, verbose, all_normal, order):
     cd = _critical_distance(alpha, k=len(data.columns), n=len(data))
     rankdf = _create_result_df_skeleton(data, alpha, all_normal, order)
     return _ComparisonResult(rankdf, pval, cd, 'friedman', 'nemenyi')
+
+
+def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode):
+    # TODO check if some outputs for the verbose mode would be helpful
+    if all_normal:
+        order_column = 'mean'
+    else:
+        order_column = 'median'
+    result_df = _create_result_df_skeleton(data, alpha/len(data.columns), all_normal, order, order_column=order_column)
+    result_df = result_df.drop('meanrank', axis='columns')
+    result_df['p_equal'] = np.nan
+    result_df['p_smaller'] = np.nan
+    result_df['decision'] = 'NA'
+
+    # re-order columns to have the same order as results
+    reordered_data = data.reindex(result_df.index, axis=1)
+
+    posterior_matrix = pd.DataFrame(index=reordered_data.columns, columns=reordered_data.columns)
+    decision_matrix = pd.DataFrame(index=reordered_data.columns, columns=reordered_data.columns)
+    for i in range(len(data.columns)):
+        for j in range(i+1, len(reordered_data.columns)):
+            if rope_mode == 'effsize':
+                # half the size of a small effect size following Kruschke (2018)
+                if all_normal:
+                    cur_rope = rope*_pooled_std(reordered_data.iloc[:, i], reordered_data.iloc[:,j])
+                else:
+                    cur_rope = rope*_pooled_mad(reordered_data.iloc[:, i], reordered_data.iloc[:, j])
+            elif rope_mode == 'absolute':
+                cur_rope = rope
+            else:
+                raise ValueError("Unknown rope_mode method, this should not be possible.")
+            srt = SignedRankTest(x=reordered_data.iloc[:,i], y=reordered_data.iloc[:,j], rope=cur_rope, nsamples=nsamples)
+            posterior_probabilities = srt.probs()
+            posterior_matrix.iloc[i, j] = posterior_probabilities
+            decision_matrix.iloc[i,j] = _posterior_decision(posterior_probabilities, alpha)
+            decision_matrix.iloc[j,i] = _posterior_decision(posterior_probabilities[::-1], alpha)
+            if i == 0:
+                # comparison with "best"
+                result_df.loc[result_df.index[j], 'p_equal'] = posterior_probabilities[1]
+                result_df.loc[result_df.index[j], 'p_smaller'] = posterior_probabilities[0]
+                result_df.loc[result_df.index[j], 'decision'] = _posterior_decision(posterior_probabilities, alpha)
+
+    return _BayesResult(result_df, posterior_matrix, decision_matrix)
 
 
 def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='meanrank'):

@@ -683,12 +683,8 @@ def bayesrank(data, alpha=0.05, rope=0.1, rope_mode='effsize', nsamples=50000, v
     Work-in-progress
     Since 1.1.0 (not yet released)
     TODO: Documentation
-    TODO: refactor to remove dependencies on private functions from _util
-    TODO: refactor to avoid local imports
     TODO: possibly merge with autorank function to keep the "single function" interface
     """
-    from baycomp import SignedRankTest
-    from autorank._util import _create_result_df_skeleton, _pooled_mad, _pooled_std, _posterior_decision
 
     # validate inputs
     if not isinstance(data, pd.DataFrame):
@@ -710,7 +706,7 @@ def bayesrank(data, alpha=0.05, rope=0.1, rope_mode='effsize', nsamples=50000, v
 
     if not isinstance(nsamples, int):
         raise TypeError('nsamples must be an integer')
-    if rope < 0.0:
+    if nsamples < 1:
         raise ValueError('nsamples must be positive')
 
     if not isinstance(verbose, bool):
@@ -727,43 +723,7 @@ def bayesrank(data, alpha=0.05, rope=0.1, rope_mode='effsize', nsamples=50000, v
     # Check pre-conditions of statistical tests
     all_normal, pvals_shapiro = test_normality(data, alpha_normality, verbose)
 
-    if all_normal:
-        order_column = 'mean'
-    else:
-        order_column = 'median'
-    result_df = _create_result_df_skeleton(data, alpha/len(data.columns), all_normal, order, order_column=order_column)
-    result_df = result_df.drop('meanrank', axis='columns')
-    result_df['p_equal'] = np.nan
-    result_df['p_smaller'] = np.nan
-    result_df['decision'] = 'NA'
+    res = rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode)
 
-    # re-order columns to have the same order as results
-    reordered_data = data.reindex(result_df.index, axis=1)
-
-    posterior_matrix = pd.DataFrame(index=reordered_data.columns, columns=reordered_data.columns)
-    decision_matrix = pd.DataFrame(index=reordered_data.columns, columns=reordered_data.columns)
-    for i in range(len(data.columns)):
-        for j in range(i+1, len(reordered_data.columns)):
-            if rope_mode == 'effsize':
-                # half the size of a small effect size following Kruschke (2018)
-                if all_normal:
-                    cur_rope = rope*_pooled_std(reordered_data.iloc[:, i], reordered_data.iloc[:,j])
-                else:
-                    cur_rope = rope*_pooled_mad(reordered_data.iloc[:, i], reordered_data.iloc[:, j])
-            elif rope_mode == 'absolute':
-                cur_rope = rope
-            else:
-                raise ValueError("Unknown rope_mode method, this should not be possible.")
-            srt = SignedRankTest(x=reordered_data.iloc[:,i], y=reordered_data.iloc[:,j], rope=cur_rope, nsamples=nsamples)
-            posterior_probabilities = srt.probs()
-            posterior_matrix.iloc[i, j] = posterior_probabilities
-            decision_matrix.iloc[i,j] = _posterior_decision(posterior_probabilities, alpha)
-            decision_matrix.iloc[j,i] = _posterior_decision(posterior_probabilities[::-1], alpha)
-            if i == 0:
-                # comparison with "best"
-                result_df.loc[result_df.index[j], 'p_equal'] = posterior_probabilities[1]
-                result_df.loc[result_df.index[j], 'p_smaller'] = posterior_probabilities[0]
-                result_df.loc[result_df.index[j], 'decision'] = _posterior_decision(posterior_probabilities, alpha)
-
-    return RankResult(result_df, None, None, 'bayes', 'bayes', all_normal, pvals_shapiro, None, None, None, alpha,
-                      alpha_normality, len(data), posterior_matrix, decision_matrix, rope, rope_mode=rope_mode)
+    return RankResult(res.rankdf, None, None, 'bayes', 'bayes', all_normal, pvals_shapiro, None, None, None, alpha,
+                      alpha_normality, len(data), res.posterior_matrix, res.decision_matrix, rope, rope_mode)
