@@ -397,10 +397,24 @@ class TestAutorank(unittest.TestCase):
         latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
         print()
-        print("BEGIN BAYESIAN ANALYSIS")
+        print("BEGIN BAYESIAN ANALYSIS - DYNAMIC ROPE")
         print()
         res = bayesrank(data, alpha=0.05, nsamples=100, verbose=self.verbose)
         self.assertFalse(res.all_normal)
+        self.assertEqual(res.omnibus, 'bayes')
+        create_report(res)
+        print("----BEGIN LATEX----")
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
+        print("----END LATEX----")
+
+    def test_autorank_ropezero(self):
+        std = 0.15
+        means = [0.3, 0.7]
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
+        res = bayesrank(data, alpha=0.05, rope=0, nsamples=100, verbose=self.verbose)
+        self.assertTrue(res.all_normal)
         self.assertEqual(res.omnibus, 'bayes')
         create_report(res)
         print("----BEGIN LATEX----")

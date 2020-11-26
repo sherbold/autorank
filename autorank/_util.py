@@ -174,14 +174,23 @@ def _posterior_decision(probabilities, alpha):
     """
     calculate decision based on probabilities and desired significance
     """
-    if probabilities[0] >= 1 - alpha:
-        return 'smaller'
-    elif probabilities[1] >= 1 - alpha:
-        return 'equal'
-    elif probabilities[2] >= 1 - alpha:
-        return 'larger'
+    if len(probabilities)==3:
+        # with ROPE
+        if probabilities[0] >= 1 - alpha:
+            return 'smaller'
+        elif probabilities[1] >= 1 - alpha:
+            return 'equal'
+        elif probabilities[2] >= 1 - alpha:
+            return 'larger'
+        else:
+            return 'inconclusive'
     else:
-        return 'inconclusive'
+        # without ROPE (i.e., rope=0)
+        if probabilities[0] >= 1 - alpha:
+            return 'smaller'
+            return 'larger'
+        else:
+            return 'inconclusive'
 
 
 def rank_two(data, alpha, verbose, all_normal, order):

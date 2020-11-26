@@ -683,7 +683,6 @@ def bayesrank(data, alpha=0.05, rope=0.1, rope_mode='effsize', nsamples=50000, v
     Work-in-progress
     Since 1.1.0 (not yet released)
     TODO: Documentation
-    TODO: handle rope=0
     TODO: refactor to remove dependencies on private functions from _util
     TODO: refactor to avoid local imports
     TODO: possibly merge with autorank function to keep the "single function" interface
@@ -699,8 +698,8 @@ def bayesrank(data, alpha=0.05, rope=0.1, rope_mode='effsize', nsamples=50000, v
     if len(data) < 5:
         raise ValueError('requires at least five performance estimations (i.e., rows)')
 
-    if not isinstance(rope, float):
-        raise TypeError('rope must be a float')
+    if not isinstance(rope, (int, float)):
+        raise TypeError('rope must be a numeric')
     if rope < 0.0:
         raise ValueError('rope must be positive')
 
