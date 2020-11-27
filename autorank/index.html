@@ -101,29 +101,38 @@
 <p>Automatically compares populations defined in a block-design data frame. Each column in the data frame contains
 the samples for one population. The data must not contain any NaNs. The data must have at least five measurements,
 i.e., rows. The current version is only reliable for less than 5000 measurements.</p>
-<p>The following approach is implemented by this function
-- First all columns are checked with the Shapiro-Wilk test for normality. We use Bonferoni correction for these
-  tests, i.e., alpha/len(data.columns).
-- If all columns are normal, we use Bartlett's test for homogeneity, otherwise we use Levene's test.
-- Based on the normality and the homogeneity, we select appropriate tests, effect sizes, and methods for determining
-  the confidence intervals of the central tendency.</p>
-<p>If all columns are normal, we calculate:
-- The mean value as central tendency.
-- The empirical standard deviation as measure for the variance.
-- The confidence interval for the mean value.
-- The effect size in comparison to the highest mean value using Cohen's d.</p>
-<p>If at least one column is not normal, we calculate:
-- The median as central tendency.
-- The median absolute deviation from the median as measure for the variance.
-- The confidence interval for the median.
-- The effect size in comparison to the highest ranking approach using Cliff's delta.</p>
-<p>For the statistical tests, there are four variants:
-- If there are two populations (columns) and both populations are normal, we use the paired t-test.
-- If there are two populations and at least one populations is not normal, we use Wilcoxon's signed rank test.
-- If there are more than two populations and all populations are normal and homoscedastic, we use repeated measures
-  ANOVA with Tukey's HSD as post-hoc test.
-- If there are more than two populations and at least one populations is not normal or the populations are
-  heteroscedastic, we use Friedman's test with the Nemenyi post-hoc test.</p>
+<p>The following approach is implemented by this function.</p>
+<ul>
+<li>First all columns are checked with the Shapiro-Wilk test for normality. We use Bonferoni correction for these
+  tests, i.e., alpha/len(data.columns).</li>
+<li>If all columns are normal, we use Bartlett's test for homogeneity, otherwise we use Levene's test.</li>
+<li>Based on the normality and the homogeneity, we select appropriate tests, effect sizes, and methods for determining
+  the confidence intervals of the central tendency.</li>
+</ul>
+<p>If all columns are normal, we calculate:</p>
+<ul>
+<li>The mean value as central tendency.</li>
+<li>The empirical standard deviation as measure for the variance.</li>
+<li>The confidence interval for the mean value.</li>
+<li>The effect size in comparison to the highest mean value using Cohen's d.</li>
+</ul>
+<p>If at least one column is not normal, we calculate:</p>
+<ul>
+<li>The median as central tendency.</li>
+<li>The median absolute deviation from the median as measure for the variance.</li>
+<li>The confidence interval for the median.</li>
+<li>The effect size in comparison to the highest ranking approach using Cliff's delta.</li>
+</ul>
+<p>For the statistical tests, there are five variants:</p>
+<ul>
+<li>If approach=='bayesian' we use a Bayesian signed rank test.</li>
+<li>If there are two populations (columns) and both populations are normal, we use the paired t-test.</li>
+<li>If there are two populations and at least one populations is not normal, we use Wilcoxon's signed rank test.</li>
+<li>If there are more than two populations and all populations are normal and homoscedastic, we use repeated measures
+  ANOVA with Tukey's HSD as post-hoc test.</li>
+<li>If there are more than two populations and at least one populations is not normal or the populations are
+  heteroscedastic, we use Friedman's test with the Nemenyi post-hoc test.</li>
+</ul>
 <p><strong>Parameters</strong></p>
 <p>data (DataFrame):
     Each column contains a population and each row contains the paired measurements
@@ -138,19 +147,23 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
     ranks for larger values. 'ascending' results in higher ranks for smaller values.</p>
 <p>approach (string, default='frequentist'):
     With 'frequentist', a suitable frequentist statistical test is used (t-test, Wilcoxon signed rank test,
-    ANOVA+Tukey's HSD, or Friedman+Nemenyi). With 'bayesian', the Bayesian signed ranked test is used.</p>
+    ANOVA+Tukey's HSD, or Friedman+Nemenyi). With 'bayesian', the Bayesian signed ranked test is used.
+    <em>(New in Version 1.1.0)</em></p>
 <p>rope (float, default=0.01):
     Region of Practical Equivalence (ROPE) used for the bayesian analysis. The statistical analysis assumes that
     differences from the central tendency that are within the ROPE do not matter in practice. Therefore, such
     deviations may be considered to be equivalent. The ROPE is defined as an interval around the central tendency
-    and the calculation of the interval is determined by the rope_mode parameter.</p>
+    and the calculation of the interval is determined by the rope_mode parameter.
+    <em>(New in Version 1.1.0)</em></p>
 <p>rope_mode (string, default='effsize'):
     Method to calculate the size of the ROPE. With 'effsize', the ROPE is determined dynamically for each comparison
     of two populations as rope*effect_size, where effect size is either Cohen's d (normal data) or Akinshin's gamma
     (non-normal data). With 'absolute', the ROPE is defined using an absolute value that is used, i.e., the value of
-    the rope parameter is used without any modification.</p>
+    the rope parameter is used without any modification.
+    <em>(New in Version 1.1.0)</em></p>
 <p>nsamples (integer, default=50000):
-    Number of samples used to estimate the posterior probabilities with the Bayesian signed rank test.</p>
+    Number of samples used to estimate the posterior probabilities with the Bayesian signed rank test.
+    <em>(New in Version 1.1.0)</em></p>
 <p><strong>Returns</strong></p>
 <p>A named tuple of type RankResult with the following entries.</p>
 <p>rankdf (DataFrame):
@@ -190,18 +203,22 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
     the matrix in the i-th row and the j-th column contains a 3-tuple (p_smaller, p_equal, p_greater) such that
     p_smaller is the probability that the population in column j is smaller than the population in row i, p_equal
     that both populations are equal, and p_larger that population j is larger than population i. If rope==0.0, the
-    matrix contains only 2-tuples (p_smaller, p_greater) because equality is not possible without a ROPE.</p>
+    matrix contains only 2-tuples (p_smaller, p_greater) because equality is not possible without a ROPE.
+    <em>(New in Version 1.1.0)</em></p>
 <p>decision_matrix (DataFrame):
     Matrix with the pair-wise decisions made with the Bayesian signed ranked test. The matrix is a square matrix
     with the populations sorted by their central tendencies as rows and columns. The value of
     the matrix in the i-th row and the j-th column contains the value 'smaller' if the population in column j is
     significantly larger than the population in row i, 'equal' is both populations are equivalent (i.e., have no
     practically relevant difference), 'larger' if the population in column j is larger than the population in
-    column i, and 'inconclusive' if the statistical analysis is did not yield a definitive result.</p>
+    column i, and 'inconclusive' if the statistical analysis is did not yield a definitive result.
+    <em>(New in Version 1.1.0)</em></p>
 <p>rope (float):
-    Region of Practical Equivalence (ROPE). Same as input parameter.</p>
+    Region of Practical Equivalence (ROPE). Same as input parameter.
+    <em>(New in Version 1.1.0)</em></p>
 <p>rope_mode (string):
-    Mode for calculating the ROPE. Same as input parameter.</p>
+    Mode for calculating the ROPE. Same as input parameter.
+    <em>(New in Version 1.1.0)</em></p>
 <h1 id="autorank.create_report">create_report</h1>
 
 <pre><code class="language-python">create_report(result, *, decimal_places)
@@ -217,13 +234,15 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
 <pre><code class="language-python">plot_stats(result, *, allow_insignificant, ax, width)
 </code></pre>
 <p>Creates a plot that supports the analysis of the results of the statistical test. The plot depends on the
-statistical test that was used.
-- Creates a Confidence Interval (CI) plot for a paired t-test between two normal populations. The confidence
- intervals are calculated with Bonferoni correction, i.e., a confidence level of alpha/2.
-- Creates a CI plot for Tukey's HSD as post-hoc test with the confidence intervals calculated using the HSD approach
- such that the family wise significance is alpha.
-- Creates Critical Distance (CD) diagrams for the Nemenyi post-hoc test. CD diagrams visualize the mean ranks of
- populations. Populations that are not significantly different are connected by a horizontal bar.</p>
+statistical test that was used.</p>
+<ul>
+<li>Creates a Confidence Interval (CI) plot for a paired t-test between two normal populations. The confidence
+ intervals are calculated with Bonferoni correction, i.e., a confidence level of alpha/2.</li>
+<li>Creates a CI plot for Tukey's HSD as post-hoc test with the confidence intervals calculated using the HSD approach
+ such that the family wise significance is alpha.</li>
+<li>Creates Critical Distance (CD) diagrams for the Nemenyi post-hoc test. CD diagrams visualize the mean ranks of
+ populations. Populations that are not significantly different are connected by a horizontal bar.</li>
+</ul>
 <p>This function raises a ValueError if the omnibus test did not detect a significant difference. The allow_significant
 parameter allows the suppression of this exception and forces the creation of the plots.</p>
 <p><strong>Parameters</strong></p>
