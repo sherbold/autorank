@@ -14,7 +14,7 @@ from scipy import stats
 from io import StringIO
 from autorank._util import *
 
-__all__ = ['autorank', 'plot_stats', 'create_report', 'latex_table', 'latex_report', 'bayesrank']
+__all__ = ['autorank', 'plot_stats', 'create_report', 'latex_table', 'latex_report']
 
 if 'text.usetex' in plt.rcParams and plt.rcParams['text.usetex']==True:
     raise UserWarning("plot_stats may fail if the matplotlib setting plt.rcParams['text.usetex']==True.\n"
@@ -22,7 +22,8 @@ if 'text.usetex' in plt.rcParams and plt.rcParams['text.usetex']==True:
                       "plt.rc('text', usetex=False)")
 
 
-def autorank(data, alpha=0.05, verbose=False, order='descending'):
+def autorank(data, alpha=0.05, verbose=False, order='descending', approach='frequentist', rope=0.1, rope_mode='effsize',
+             nsamples=50000):
     """
     Automatically compares populations defined in a block-design data frame. Each column in the data frame contains
     the samples for one population. The data must not contain any NaNs. The data must have at least five measurements,
@@ -72,6 +73,25 @@ def autorank(data, alpha=0.05, verbose=False, order='descending'):
         Determines the ordering central tendencies of the populations for the ranking. 'descending' results in higher
         ranks for larger values. 'ascending' results in higher ranks for smaller values.
 
+    approach (string, default='frequentist'):
+        With 'frequentist', a suitable frequentist statistical test is used (t-test, Wilcoxon signed rank test,
+        ANOVA+Tukey's HSD, or Friedman+Nemenyi). With 'bayesian', the Bayesian signed ranked test is used.
+
+    rope (float, default=0.01):
+        Region of Practical Equivalence (ROPE) used for the bayesian analysis. The statistical analysis assumes that
+        differences from the central tendency that are within the ROPE do not matter in practice. Therefore, such
+        deviations may be considered to be equivalent. The ROPE is defined as an interval around the central tendency
+        and the calculation of the interval is determined by the rope_mode parameter.
+
+    rope_mode (string, default='effsize'):
+        Method to calculate the size of the ROPE. With 'effsize', the ROPE is determined dynamically for each comparison
+        of two populations as rope*effect_size, where effect size is either Cohen's d (normal data) or Akinshin's gamma
+        (non-normal data). With 'absolute', the ROPE is defined using an absolute value that is used, i.e., the value of
+        the rope parameter is used without any modification.
+
+    nsamples (integer, default=50000):
+        Number of samples used to estimate the posterior probabilities with the Bayesian signed rank test.
+
     # Returns
 
     A named tuple of type RankResult with the following entries.
@@ -80,15 +100,16 @@ def autorank(data, alpha=0.05, verbose=False, order='descending'):
         Ranked populations including statistics about the populations.
 
     pvalue (float):
-        p-value of the omnibus test for the difference in central tendency between the populations.
+        p-value of the omnibus test for the difference in central tendency between the populations. Not used with
+        Bayesian statistics.
 
     omnibus (string):
-       mnibus test that is used for the test of a difference ein the central tendency.
+       Omnibus test that is used for the test of a difference ein the central tendency.
 
     posthoc (string):
         Posthoc tests that was used. The posthoc test is performed even if the omnibus test is not significant. The
         results should only be used if the p-value of the omnibus test indicates significance. None in case of two
-        populations.
+        populations and Bayesian statistics.
 
     cd (float):
         The critical distance of the Nemenyi posthoc test, if it was used. Otherwise None.
@@ -100,10 +121,10 @@ def autorank(data, alpha=0.05, verbose=False, order='descending'):
         p-values of the Shapiro-Wilk tests for normality sorted by the order of the input columns.
 
     homoscedastic (bool):
-        True if populations are homoscedastic, false otherwise.
+        True if populations are homoscedastic, false otherwise. None in case of Bayesian statistics.
 
     pval_homogeneity (float):
-        p-value of the test for homogeneity.
+        p-value of the test for homogeneity. None in case of Bayesian statistics.
 
     homogeneity_test (string):
         Test used for homogeneity. Either 'bartlet' or 'levene'.
@@ -119,6 +140,28 @@ def autorank(data, alpha=0.05, verbose=False, order='descending'):
 
     order (string):
         Order of the central tendencies used for ranking.
+
+    posterior_matrix (DataFrame):
+        Matrix with the pair-wise posterior probabilities estimated with the Bayesian signed ranked test. The matrix
+        is a square matrix with the populations sorted by their central tendencies as rows and columns. The value of
+        the matrix in the i-th row and the j-th column contains a 3-tuple (p_smaller, p_equal, p_greater) such that
+        p_smaller is the probability that the population in column j is smaller than the population in row i, p_equal
+        that both populations are equal, and p_larger that population j is larger than population i. If rope==0.0, the
+        matrix contains only 2-tuples (p_smaller, p_greater) because equality is not possible without a ROPE.
+
+    decision_matrix (DataFrame):
+        Matrix with the pair-wise decisions made with the Bayesian signed ranked test. The matrix is a square matrix
+        with the populations sorted by their central tendencies as rows and columns. The value of
+        the matrix in the i-th row and the j-th column contains the value 'smaller' if the population in column j is
+        significantly larger than the population in row i, 'equal' is both populations are equivalent (i.e., have no
+        practically relevant difference), 'larger' if the population in column j is larger than the population in
+        column i, and 'inconclusive' if the statistical analysis is did not yield a definitive result.
+
+    rope (float):
+        Region of Practical Equivalence (ROPE). Same as input parameter.
+
+    rope_mode (string):
+        Mode for calculating the ROPE. Same as input parameter.
     """
 
     # validate inputs
@@ -142,40 +185,66 @@ def autorank(data, alpha=0.05, verbose=False, order='descending'):
     if order not in ['ascending', 'descending']:
         raise ValueError("order must be either 'ascending' or 'descending'")
 
+    if not isinstance(approach, str):
+        raise TypeError('approach must be str')
+    if approach not in ['frequentist', 'bayesian']:
+        raise ValueError("approach must be either 'frequentist' or 'bayesian'")
+
+    if not isinstance(rope, (int, float)):
+        raise TypeError('rope must be a numeric')
+    if rope < 0.0:
+        raise ValueError('rope must be positive')
+
+    if not isinstance(rope_mode, str):
+        raise TypeError('rope_mode must be str')
+    if rope_mode not in ['effsize', 'absolute']:
+        raise ValueError("rope_mode must be either 'effsize' or 'absolute'")
+
+    if not isinstance(nsamples, int):
+        raise TypeError('nsamples must be an integer')
+    if nsamples < 1:
+        raise ValueError('nsamples must be positive')
+
     # Bonferoni correction for normality tests
     alpha_normality = alpha / len(data.columns)
-
-    # Check pre-conditions of statistical tests
     all_normal, pvals_shapiro = test_normality(data, alpha_normality, verbose)
 
-    if all_normal:
-        if verbose:
-            print("Using Bartlett's test for homoscedacity of normally distributed data")
-        homogeneity_test = 'bartlett'
-        pval_homogeneity = stats.bartlett(*data.transpose().values).pvalue
-    else:
-        if verbose:
-            print("Using Levene's test for homoscedacity of non-normal data.")
-        homogeneity_test = 'levene'
-        pval_homogeneity = stats.levene(*data.transpose().values).pvalue
-    var_equal = pval_homogeneity >= alpha
-    if verbose:
-        if var_equal:
-            print("Fail to reject null hypothesis that all variances are equal (p=%f>=%f)" % (pval_homogeneity, alpha))
-        else:
-            print("Rejecting null hypothesis that all variances are equal (p=%f<%f)" % (pval_homogeneity, alpha))
-
     # Select appropriate tests
-    if len(data.columns) == 2:
-        res = rank_two(data, alpha, verbose, all_normal, order)
-    else:
-        if all_normal and var_equal:
-            res = rank_multiple_normal_homoscedastic(data, alpha, verbose, order)
+    if approach == 'frequentist':
+        # homogeneity needs only to be checked for frequentist approach
+        if all_normal:
+            if verbose:
+                print("Using Bartlett's test for homoscedacity of normally distributed data")
+            homogeneity_test = 'bartlett'
+            pval_homogeneity = stats.bartlett(*data.transpose().values).pvalue
         else:
-            res = rank_multiple_nonparametric(data, alpha, verbose, all_normal, order)
+            if verbose:
+                print("Using Levene's test for homoscedacity of non-normal data.")
+            homogeneity_test = 'levene'
+            pval_homogeneity = stats.levene(*data.transpose().values).pvalue
+        var_equal = pval_homogeneity >= alpha
+        if verbose:
+            if var_equal:
+                print("Fail to reject null hypothesis that all variances are equal (p=%f>=%f)" % (pval_homogeneity, alpha))
+            else:
+                print("Rejecting null hypothesis that all variances are equal (p=%f<%f)" % (pval_homogeneity, alpha))
 
-    return RankResult(res.rankdf, res.pvalue, res.cd, res.omnibus, res.posthoc, all_normal, pvals_shapiro, var_equal,
-                      pval_homogeneity, homogeneity_test, alpha, alpha_normality, len(data), None, None, None, None)
+
+        if len(data.columns) == 2:
+            res = rank_two(data, alpha, verbose, all_normal, order)
+        else:
+            if all_normal and var_equal:
+                res = rank_multiple_normal_homoscedastic(data, alpha, verbose, order)
+            else:
+                res = rank_multiple_nonparametric(data, alpha, verbose, all_normal, order)
+
+        return RankResult(res.rankdf, res.pvalue, res.cd, res.omnibus, res.posthoc, all_normal, pvals_shapiro, var_equal,
+                          pval_homogeneity, homogeneity_test, alpha, alpha_normality, len(data), None, None, None, None)
+    elif approach=='bayesian':
+        res = rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples)
+
+        return RankResult(res.rankdf, None, None, 'bayes', 'bayes', all_normal, pvals_shapiro, None, None, None, alpha,
+                          alpha_normality, len(data), res.posterior_matrix, res.decision_matrix, rope, rope_mode)
 
 
 def plot_stats(result, *, allow_insignificant=False, ax=None, width=None):
@@ -676,54 +745,3 @@ def latex_report(result, *, decimal_places=3, prefix="", generate_plots=True, fi
 
     if complete_document:
         print(r"\end{document}")
-
-
-def bayesrank(data, alpha=0.05, rope=0.1, rope_mode='effsize', nsamples=50000, verbose=False, order='descending'):
-    """
-    Work-in-progress
-    Since 1.1.0 (not yet released)
-    TODO: Documentation
-    TODO: possibly merge with autorank function to keep the "single function" interface
-    """
-
-    # validate inputs
-    if not isinstance(data, pd.DataFrame):
-        raise TypeError('data must be a pandas DataFrame')
-    if len(data.columns) < 2:
-        raise ValueError('requires at least two classifiers (i.e., columns)')
-    if len(data) < 5:
-        raise ValueError('requires at least five performance estimations (i.e., rows)')
-
-    if not isinstance(rope, (int, float)):
-        raise TypeError('rope must be a numeric')
-    if rope < 0.0:
-        raise ValueError('rope must be positive')
-
-    if not isinstance(rope_mode, str):
-        raise TypeError('rope_mode must be str')
-    if rope_mode not in ['effsize', 'absolute']:
-        raise ValueError("rope_mode must be either 'effsize' or 'absolute'")
-
-    if not isinstance(nsamples, int):
-        raise TypeError('nsamples must be an integer')
-    if nsamples < 1:
-        raise ValueError('nsamples must be positive')
-
-    if not isinstance(verbose, bool):
-        raise TypeError('verbose must be bool')
-
-    if not isinstance(order, str):
-        raise TypeError('order must be str')
-    if order not in ['ascending', 'descending']:
-        raise ValueError("order must be either 'ascending' or 'descending'")
-
-    # Bonferoni correction for normality tests
-    alpha_normality = alpha / len(data.columns)
-
-    # Check pre-conditions of statistical tests
-    all_normal, pvals_shapiro = test_normality(data, alpha_normality, verbose)
-
-    res = rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples)
-
-    return RankResult(res.rankdf, None, None, 'bayes', 'bayes', all_normal, pvals_shapiro, None, None, None, alpha,
-                      alpha_normality, len(data), res.posterior_matrix, res.decision_matrix, rope, rope_mode)
