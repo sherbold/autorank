@@ -10,11 +10,11 @@
 ## Summary
 
 Autorank is a simple Python package with one task: simplify the comparison between (multiple) paired populations. This
-is, for example, required if the performance different machine learning algorithms or simulations should be compared on
-multiple data sets. The performance measures on each data set are then the paired samples, the difference in the central
-tendency (e.g., the mean or median) can be used to rank the different algorithms. This problem is not new and how such
-tests could be done was already described in 2006  in the well-known article _Janez Demšar. 2006. Statistical Comparisons
-of Classifiers over Multiple Data Sets. J. Mach. Learn. Res. 7 (December 2006), 1–30_. 
+is, for example, required if the performance of different machine learning algorithms or simulations should be compared 
+on multiple data sets. The performance measures on each data set are then the paired samples, the difference in the
+central tendency (e.g., the mean or median) can be used to rank the different algorithms. This problem is not new and
+how such tests could be done was already described in 2006  in the well-known article _Janez Demšar. 2006. Statistical
+Comparisons of Classifiers over Multiple Data Sets. J. Mach. Learn. Res. 7 (December 2006), 1–30_. 
 
 Regardless, the correct use of Demšar guidelines is hard for non-experts in statistics. Correct use of the guidelines
 requires the decision of whether a paired t-test, a Wilcoxon's rank sum test, repeated measures ANOVA with Tukey's HSD 
@@ -25,11 +25,21 @@ quite complex. This does not yet account for the adjustment of the significance 
 achieve the desired family-wise significance. Additionally, not only the tests should be conducted, but good reporting
 of the results also include confidence intervals, effect sizes, and the decision of whether it is appropriate to report
 the mean value and standard deviation, or whether the median value and the median absolute deviation is more
-appropriate.   
+appropriate.
+
+Moreover, Bayesian statistics have become more popular in recent years. There is even a follow up article co-authored
+by Janez Demšar that suggest to use Bayesian statistics: _Alessio Benavoli, Giorgio Corani, Janez Demšar, Marco
+Zaffalon. 2017. Time for a Change: a Tutorial for Comparing Multiple Classifiers Through Bayesian Analysis. J. Mach.
+Learn. Res. 18(77), 1-36_. There are two main advantages of the Bayesian approach. 1) Instead of an indirect assessment
+of the hypothesis that something is equal or different through a p-value, Bayesian statistics directly computes the
+probability that the central tendency of a population is smaller, equal, or larger than that of other populations. 2)
+The definition of a Region of Practical Equivalence (ROPE) allows the definition of differences are too small to be 
+practically relevant, which enables the Bayesian approach to determine equality of populations.  
 
 The goal of Autorank is to simplify the statistical analysis for non-experts. Autorank takes care of all of the above
-with a single function call. Additional functions allow the generation of appropriate plots, result tables, and even of
-a complete latex document. All that is required is the data about the populations is in a 
+with a single function call, both for the traditional *frequentist* approach (Guidelines from 2006), as well as for the
+*Bayesian* approach (Guidelines from 2017). Additional functions allow the generation of appropriate plots, result
+tables, and even of a complete latex document. All that is required is the data about the populations is in a 
 [Pandas](https://pandas.pydata.org/) dataframe.   
 
 
@@ -67,19 +77,23 @@ python setup.py install
 
 ## API Documentation
 
-You can find the API documentation of the current master of Autorank
+You can find the API documentation of the current master of autorank
 [online](https://sherbold.github.io/autorank/autorank/).
 
 ## Description
 
-The following flow chart summarizes the decisions made by Autorank.
+The following flow chart summarizes the decisions made by autorank.
  
 ![CD Diagram](flowchart.png)
 
-Autorank uses the following strategy for the statistical comparison of paired populations:
+The user has to decide if the frequentist approach based on the guidelines from 2006 or the Bayesian approach based on
+the guidelines from 2017 is used. Afterwards, autorank does the rest on its own. 
+
+### Normality and Statistical Markers
+
+Autorank determines if all populations are normal to select appropriate statistical markers for reporting.  
 - First all populations are checked with the Shapiro-Wilk test for normality. We use Bonferoni correction for these
   tests, i.e., alpha/#populations.
-- If all columns are normal, we use Bartlett's test for homogeneity, otherwise we use Levene's test.
 - Based on the normality and the homogeneity, we select appropriate tests, effect sizes, and methods for determining
   the confidence intervals of the central tendency.
 
@@ -93,21 +107,49 @@ If at least one column is not normal, we calculate:
 - The median as central tendency.
 - The median absolute deviation from the median as measure for the variance.
 - The confidence interval for the median.
-- The effect size in comparison to the highest ranking approach using Cliff's delta.
+- The effect size in comparison to the highest ranking approach using
+[Akinshin's gamma](https://aakinshin.net/posts/nonparametric-effect-size/).
 
-For the statistical tests, there are four variants:
+### Frequentist Tests (2006 Guidelines)
+
+The appropriate statistical test for the frequentist approach is determined based on the normality of the data, the
+homogeneity of the populations (equal variances), and the number of populations. The best test for homogeneity depends
+on the normality of the data. 
+- If all columns are normal, we use Bartlett's test for homogeneity, otherwise we use Levene's test.
+
+We then have four variants for statistical testing. 
 - If there are two populations and both populations are normal, we use the paired t-test.
 - If there are two populations and at least one populations is not normal, we use Wilcoxon's signed rank test.
 - If there are more than two populations and all populations are normal and homoscedastic, we use repeated measures
   ANOVA with Tukey's HSD as post-hoc test.
 - If there are more than two populations and at least one populations is not normal or the populations are
   heteroscedastic, we use Friedman's test with the Nemenyi post-hoc test.
-  
+
+### Bayesian Tests (2017 Guidelines)
+
+For the Bayesian approach, we can use the Bayesian Signed Rank test, which makes no assumptions on the data. The critial
+aspect of this test is the Region Of Practical Equivalence (ROPE) that defines when differences are practically
+irrelevant. If not configured otherwise, autorank determines the ROPE as follows. 
+- For normal data, the ROPE is defined as 0.1*d, where d is the effect size (Cohen's d). 
+- For non-normal data, the ROPE is defined as 0.1*gamma, where gamma is the effect size (Akinshin's gamma).
+
+This follows [Kruschke, 2019](), who suggest to determine the ROPE as half the size of a small effect. Since a small
+effect with Cohen's d is 0.2, this means that a ROPE of 0.1*d translates to a considering all differences that are not
+even half of a small effect as practically equivalent. The same concept is applied with Akinshin's gamma, which is a
+direct translation of the concept of Cohen's d to robust statistics based on the median absolute deviation instead
+of the standard deviation.  
+
+Users of autorank can define their own ROPE either with a different ratio of the effect size or using a fixed range for
+the ROPE. 
+
+
+### Implementation
+
 We use the paired t-test, the Wilcoxon signed rank test, and the Friedman test from [scipy](https://www.scipy.org/). The
 repeated measures ANOVA and Tukey's HSD test (including the calculation of the confidence intervals) are used from
-[statsmodels](statsmodels). We use own implementations for the calculation of critical distance of the Nemenyi test,
-the calculation of the effect sizes, and the calculation of the confidence intervals (with the exception of Tukey's
-HSD).
+[statsmodels](statsmodels). We use the Bayesian signed rank test from the [baycomp](https://github.com/janezd/baycomp)
+package. We use own implementations for the calculation of critical distance of the Nemenyi test, the calculation of the
+effect sizes, and the calculation of the confidence intervals (with the exception of Tukey's HSD).
 
   
 ## Usage Example
