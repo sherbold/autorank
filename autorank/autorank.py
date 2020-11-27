@@ -29,7 +29,8 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
     the samples for one population. The data must not contain any NaNs. The data must have at least five measurements,
     i.e., rows. The current version is only reliable for less than 5000 measurements.
 
-    The following approach is implemented by this function
+    The following approach is implemented by this function.
+
     - First all columns are checked with the Shapiro-Wilk test for normality. We use Bonferoni correction for these
       tests, i.e., alpha/len(data.columns).
     - If all columns are normal, we use Bartlett's test for homogeneity, otherwise we use Levene's test.
@@ -37,18 +38,22 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
       the confidence intervals of the central tendency.
 
     If all columns are normal, we calculate:
+
     - The mean value as central tendency.
     - The empirical standard deviation as measure for the variance.
     - The confidence interval for the mean value.
     - The effect size in comparison to the highest mean value using Cohen's d.
 
     If at least one column is not normal, we calculate:
+
     - The median as central tendency.
     - The median absolute deviation from the median as measure for the variance.
     - The confidence interval for the median.
     - The effect size in comparison to the highest ranking approach using Cliff's delta.
 
-    For the statistical tests, there are four variants:
+    For the statistical tests, there are five variants:
+
+    - If approach=='bayesian' we use a Bayesian signed rank test.
     - If there are two populations (columns) and both populations are normal, we use the paired t-test.
     - If there are two populations and at least one populations is not normal, we use Wilcoxon's signed rank test.
     - If there are more than two populations and all populations are normal and homoscedastic, we use repeated measures
@@ -76,21 +81,25 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
     approach (string, default='frequentist'):
         With 'frequentist', a suitable frequentist statistical test is used (t-test, Wilcoxon signed rank test,
         ANOVA+Tukey's HSD, or Friedman+Nemenyi). With 'bayesian', the Bayesian signed ranked test is used.
+        _(New in Version 1.1.0)_
 
     rope (float, default=0.01):
         Region of Practical Equivalence (ROPE) used for the bayesian analysis. The statistical analysis assumes that
         differences from the central tendency that are within the ROPE do not matter in practice. Therefore, such
         deviations may be considered to be equivalent. The ROPE is defined as an interval around the central tendency
         and the calculation of the interval is determined by the rope_mode parameter.
+        _(New in Version 1.1.0)_
 
     rope_mode (string, default='effsize'):
         Method to calculate the size of the ROPE. With 'effsize', the ROPE is determined dynamically for each comparison
         of two populations as rope*effect_size, where effect size is either Cohen's d (normal data) or Akinshin's gamma
         (non-normal data). With 'absolute', the ROPE is defined using an absolute value that is used, i.e., the value of
         the rope parameter is used without any modification.
+        _(New in Version 1.1.0)_
 
     nsamples (integer, default=50000):
         Number of samples used to estimate the posterior probabilities with the Bayesian signed rank test.
+        _(New in Version 1.1.0)_
 
     # Returns
 
@@ -148,6 +157,7 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
         p_smaller is the probability that the population in column j is smaller than the population in row i, p_equal
         that both populations are equal, and p_larger that population j is larger than population i. If rope==0.0, the
         matrix contains only 2-tuples (p_smaller, p_greater) because equality is not possible without a ROPE.
+        _(New in Version 1.1.0)_
 
     decision_matrix (DataFrame):
         Matrix with the pair-wise decisions made with the Bayesian signed ranked test. The matrix is a square matrix
@@ -156,12 +166,15 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
         significantly larger than the population in row i, 'equal' is both populations are equivalent (i.e., have no
         practically relevant difference), 'larger' if the population in column j is larger than the population in
         column i, and 'inconclusive' if the statistical analysis is did not yield a definitive result.
+        _(New in Version 1.1.0)_
 
     rope (float):
         Region of Practical Equivalence (ROPE). Same as input parameter.
+        _(New in Version 1.1.0)_
 
     rope_mode (string):
         Mode for calculating the ROPE. Same as input parameter.
+        _(New in Version 1.1.0)_
     """
 
     # validate inputs
@@ -252,6 +265,7 @@ def plot_stats(result, *, allow_insignificant=False, ax=None, width=None):
     """
     Creates a plot that supports the analysis of the results of the statistical test. The plot depends on the
     statistical test that was used.
+
     - Creates a Confidence Interval (CI) plot for a paired t-test between two normal populations. The confidence
      intervals are calculated with Bonferoni correction, i.e., a confidence level of alpha/2.
     - Creates a CI plot for Tukey's HSD as post-hoc test with the confidence intervals calculated using the HSD approach
