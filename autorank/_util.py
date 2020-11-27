@@ -7,7 +7,7 @@ from scipy import stats
 from statsmodels.stats.libqsturng import qsturng
 from statsmodels.stats.multicomp import MultiComparison
 from statsmodels.stats.anova import AnovaRM
-from baycomp import SignedRankTest
+from baycomp import two_on_multiple
 from collections import namedtuple
 
 __all__ = ['rank_two', 'rank_multiple_normal_homoscedastic', 'rank_bayesian', 'RankResult',
@@ -35,7 +35,7 @@ class RankResult(namedtuple('RankResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 
                'alpha_normality=%s\n' \
                'num_samples=%s\n' \
                'posterior_matrix=\n%s\n' \
-               'decision_matrix=\n%\n' \
+               'decision_matrix=\n%s\n' \
                'rope=%s\n' \
                'rope_mode=%s)' % (self.rankdf, self.pvalue, self.cd, self.omnibus, self.posthoc, self.all_normal,
                                   self.pvals_shapiro, self.homoscedastic, self.pval_homogeneity,
@@ -184,7 +184,7 @@ def _posterior_decision(probabilities, alpha):
     """
     calculate decision based on probabilities and desired significance
     """
-    if len(probabilities)==3:
+    if len(probabilities) == 3:
         # with ROPE
         if probabilities[0] >= 1 - alpha:
             return 'smaller'
@@ -198,6 +198,7 @@ def _posterior_decision(probabilities, alpha):
         # without ROPE (i.e., rope=0)
         if probabilities[0] >= 1 - alpha:
             return 'smaller'
+        elif probabilities[1] >= 1 - alpha:
             return 'larger'
         else:
             return 'inconclusive'
@@ -310,18 +311,18 @@ def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsam
             if rope_mode == 'effsize':
                 # half the size of a small effect size following Kruschke (2018)
                 if all_normal:
-                    cur_rope = rope*_pooled_std(reordered_data.iloc[:, i], reordered_data.iloc[:,j])
+                    cur_rope = rope*_pooled_std(reordered_data.iloc[:, i], reordered_data.iloc[:, j])
                 else:
                     cur_rope = rope*_pooled_mad(reordered_data.iloc[:, i], reordered_data.iloc[:, j])
             elif rope_mode == 'absolute':
                 cur_rope = rope
             else:
                 raise ValueError("Unknown rope_mode method, this should not be possible.")
-            srt = SignedRankTest(x=reordered_data.iloc[:,i], y=reordered_data.iloc[:,j], rope=cur_rope, nsamples=nsamples)
-            posterior_probabilities = srt.probs()
+            posterior_probabilities = two_on_multiple(x=reordered_data.iloc[:, i], y=reordered_data.iloc[:, j],
+                                                      rope=cur_rope, nsamples=nsamples)
             posterior_matrix.iloc[i, j] = posterior_probabilities
-            decision_matrix.iloc[i,j] = _posterior_decision(posterior_probabilities, alpha)
-            decision_matrix.iloc[j,i] = _posterior_decision(posterior_probabilities[::-1], alpha)
+            decision_matrix.iloc[i, j] = _posterior_decision(posterior_probabilities, alpha)
+            decision_matrix.iloc[j, i] = _posterior_decision(posterior_probabilities[::-1], alpha)
             if i == 0:
                 # comparison with "best"
                 result_df.loc[result_df.index[j], 'p_equal'] = posterior_probabilities[1]

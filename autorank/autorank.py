@@ -16,7 +16,7 @@ from autorank._util import *
 
 __all__ = ['autorank', 'plot_stats', 'create_report', 'latex_table', 'latex_report']
 
-if 'text.usetex' in plt.rcParams and plt.rcParams['text.usetex']==True:
+if 'text.usetex' in plt.rcParams and plt.rcParams['text.usetex']:
     raise UserWarning("plot_stats may fail if the matplotlib setting plt.rcParams['text.usetex']==True.\n"
                       "In case of failures you can try to set this value to False as follows:"
                       "plt.rc('text', usetex=False)")
@@ -225,10 +225,10 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
         var_equal = pval_homogeneity >= alpha
         if verbose:
             if var_equal:
-                print("Fail to reject null hypothesis that all variances are equal (p=%f>=%f)" % (pval_homogeneity, alpha))
+                print("Fail to reject null hypothesis that all variances are equal "
+                      "(p=%f>=%f)" % (pval_homogeneity, alpha))
             else:
                 print("Rejecting null hypothesis that all variances are equal (p=%f<%f)" % (pval_homogeneity, alpha))
-
 
         if len(data.columns) == 2:
             res = rank_two(data, alpha, verbose, all_normal, order)
@@ -238,9 +238,10 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
             else:
                 res = rank_multiple_nonparametric(data, alpha, verbose, all_normal, order)
 
-        return RankResult(res.rankdf, res.pvalue, res.cd, res.omnibus, res.posthoc, all_normal, pvals_shapiro, var_equal,
-                          pval_homogeneity, homogeneity_test, alpha, alpha_normality, len(data), None, None, None, None)
-    elif approach=='bayesian':
+        return RankResult(res.rankdf, res.pvalue, res.cd, res.omnibus, res.posthoc, all_normal, pvals_shapiro,
+                          var_equal, pval_homogeneity, homogeneity_test, alpha, alpha_normality, len(data), None, None,
+                          None, None)
+    elif approach == 'bayesian':
         res = rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples)
 
         return RankResult(res.rankdf, None, None, 'bayes', 'bayes', all_normal, pvals_shapiro, None, None, None, alpha,
@@ -284,7 +285,7 @@ def plot_stats(result, *, allow_insignificant=False, ax=None, width=None):
     if not isinstance(result, RankResult):
         raise TypeError("result must be of type RankResult and should be the outcome of calling the autorank function.")
 
-    if result.omnibus=='bayes':
+    if result.omnibus == 'bayes':
         raise ValueError("ploting results of bayesian analysis not yet supported.")
 
     if result.pvalue >= result.alpha and not allow_insignificant:
@@ -322,9 +323,9 @@ def create_report(result, *, decimal_places=3):
     """
 
     # TODO add effect sizes to multiple comparisons.
-    def single_population_string(population, with_stats=False, pval=None, with_rank=True):
-        if pval is not None:
-            return "%s (p=%.*f)" % (population, decimal_places, pval)
+    def single_population_string(population, with_stats=False, pop_pval=None, with_rank=True):
+        if pop_pval is not None:
+            return "%s (p=%.*f)" % (population, decimal_places, pop_pval)
         if with_stats:
             halfwidth = (result.rankdf.at[population, 'ci_upper'] - result.rankdf.at[population, 'ci_lower']) / 2
             mystats = []
@@ -342,16 +343,16 @@ def create_report(result, *, decimal_places=3):
         else:
             return str(population)
 
-    def create_population_string(populations, with_stats=False, pvals=None, with_rank=False):
+    def create_population_string(populations, with_stats=False, pop_pvals=None, with_rank=False):
         if isinstance(populations, str):
             populations = [populations]
         population_strings = []
-        for i, population in enumerate(populations):
-            if pvals is not None:
-                pval = pvals[i]
+        for index, population in enumerate(populations):
+            if pop_pvals is not None:
+                cur_pval = pop_pvals[index]
             else:
-                pval = None
-            population_strings.append(single_population_string(population, with_stats, pval, with_rank))
+                cur_pval = None
+            population_strings.append(single_population_string(population, with_stats, cur_pval, with_rank))
         if len(populations) == 1:
             popstr = population_strings[0]
         elif len(populations) == 2:
@@ -388,7 +389,7 @@ def create_report(result, *, decimal_places=3):
             population_term = 'populations'
         print("We rejected the null hypothesis that the population is normal for the %s %s. "
               "Therefore, we assume that not all populations are "
-              "normal." % (population_term, create_population_string(not_normal, pvals=pvals)))
+              "normal." % (population_term, create_population_string(not_normal, pop_pvals=pvals)))
 
     if result.omnibus == 'bayes':
         if result.all_normal:
@@ -414,16 +415,16 @@ def create_report(result, *, decimal_places=3):
         else:
             print(
                 'We used a fixed value of %.*f to define the region of practical equivalence (ROPE) around the '
-                '%s.' % (decimal_places, result.rope))
-        if set(['inconclusive']) == set(result.rankdf['decision']):
+                '%s.' % (decimal_places, result.rope, central_tendency))
+        if {'inconclusive'} == set(result.rankdf['decision']):
             print("We failed to find any conclusive evidence for differences between the populations "
                   "%s." % create_population_string(result.rankdf.index, with_stats=True))
-        elif set(['equal']) == set(result.rankdf['decision']):
+        elif {'equal'} == set(result.rankdf['decision']):
             print(
                 "All populations are equal, i.e., the are no significant and practically relevant differences "
                 "between the populations %s." % create_population_string(result.rankdf.index,
                                                                          with_stats=True))
-        elif set(['equal', 'inconclusive']) == set(result.rankdf['decision']):
+        elif {'equal', 'inconclusive'} == set(result.rankdf['decision']):
             print(
                 "The populations %s are all either equal or the results of the analysis are inconclusive.")
             print(result.decision_matrix)
@@ -623,7 +624,7 @@ def latex_table(result, *, decimal_places=3, label=None):
     table_df = result.rankdf
     columns = table_df.columns.to_list()
     if result.omnibus != 'bayes' and result.pvalue >= result.alpha or \
-       result.omnibus == 'bayes' and len(set(['smaller', 'larger']).intersection(set(result.rankdf['decision']))) == 0:
+       result.omnibus == 'bayes' and len({'smaller', 'larger'}.intersection(set(result.rankdf['decision']))) == 0:
         columns.remove('effect_size')
         columns.remove('magnitude')
     if result.posthoc == 'tukeyhsd':
