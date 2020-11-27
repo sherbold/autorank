@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from autorank import *
+from autorank._util import RankResult
 
 pd.set_option('display.max_columns', 20)
 
@@ -349,7 +350,7 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, stds[i], self.sample_size).clip(0, 1)
-        autorank(data, 0.05, self.verbose, order='ascending')  # check if call works with ascending
+        res_asc = autorank(data, 0.05, self.verbose, order='ascending')  # check if call works with ascending
         res = autorank(data, 0.05, self.verbose)
         self.assertFalse(res.all_normal)
         self.assertFalse(res.homoscedastic)
@@ -357,6 +358,7 @@ class TestAutorank(unittest.TestCase):
         self.assertEqual(res.posthoc, 'nemenyi')
         self.assertTrue(res.pvalue < res.alpha)
         plot_stats(res)
+        plot_stats(res_asc) # this is not covered otherwise, because the CD diagrams respect the order
         plt.draw()
         create_report(res)
         print("----BEGIN LATEX----")
@@ -421,6 +423,20 @@ class TestAutorank(unittest.TestCase):
         latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
 
+    def test_autorank_absoluterope(self):
+        std = 0.15
+        means = [0.3, 0.7]
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
+        res = autorank(data, alpha=0.05, rope=0.1, rope_mode='absolute', nsamples=100, verbose=self.verbose, approach='bayesian')
+        self.assertTrue(res.all_normal)
+        self.assertEqual(res.omnibus, 'bayes')
+        create_report(res)
+        print("----BEGIN LATEX----")
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
+        print("----END LATEX----")
+
     def test_autorank_invalid(self):
         self.assertRaises(TypeError, autorank,
                           data="foo")
@@ -446,13 +462,42 @@ class TestAutorank(unittest.TestCase):
         self.assertRaises(ValueError, autorank,
                           data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
                           order="foo")
+        self.assertRaises(TypeError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
+                          approach=True)
+        self.assertRaises(ValueError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
+                          approach="foo")
+        self.assertRaises(TypeError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
+                          rope="foo")
+        self.assertRaises(ValueError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
+                          rope=-1.0)
+        self.assertRaises(TypeError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
+                          nsamples="foo")
+        self.assertRaises(TypeError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
+                          nsamples=10.5)
+        self.assertRaises(ValueError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
+                          nsamples=0)
 
     def test_plot_stats_invalid(self):
         self.assertRaises(TypeError, plot_stats,
                           result="foo")
+        res = RankResult(None, None, None, 'bayes', None, None, None, None, None, None, None, None, None, None, None,
+                         None, None)
+        self.assertRaises(ValueError, plot_stats,
+                          result=res)
 
     def test_create_report_invalid(self):
         self.assertRaises(TypeError, create_report,
+                          result="foo")
+
+    def test_latex_report_invalid(self):
+        self.assertRaises(TypeError, latex_report,
                           result="foo")
 
     def test_realdata(self):
