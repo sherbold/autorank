@@ -89,7 +89,14 @@
               
                 <h1 id="autorank.autorank">autorank</h1>
 
-<pre><code class="language-python">autorank(data, alpha=0.05, verbose=False, order='descending')
+<pre><code class="language-python">autorank(data,
+         alpha=0.05,
+         verbose=False,
+         order='descending',
+         approach='frequentist',
+         rope=0.1,
+         rope_mode='effsize',
+         nsamples=50000)
 </code></pre>
 <p>Automatically compares populations defined in a block-design data frame. Each column in the data frame contains
 the samples for one population. The data must not contain any NaNs. The data must have at least five measurements,
@@ -129,18 +136,34 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
 <p>order (string, default='descending'):
     Determines the ordering central tendencies of the populations for the ranking. 'descending' results in higher
     ranks for larger values. 'ascending' results in higher ranks for smaller values.</p>
+<p>approach (string, default='frequentist'):
+    With 'frequentist', a suitable frequentist statistical test is used (t-test, Wilcoxon signed rank test,
+    ANOVA+Tukey's HSD, or Friedman+Nemenyi). With 'bayesian', the Bayesian signed ranked test is used.</p>
+<p>rope (float, default=0.01):
+    Region of Practical Equivalence (ROPE) used for the bayesian analysis. The statistical analysis assumes that
+    differences from the central tendency that are within the ROPE do not matter in practice. Therefore, such
+    deviations may be considered to be equivalent. The ROPE is defined as an interval around the central tendency
+    and the calculation of the interval is determined by the rope_mode parameter.</p>
+<p>rope_mode (string, default='effsize'):
+    Method to calculate the size of the ROPE. With 'effsize', the ROPE is determined dynamically for each comparison
+    of two populations as rope*effect_size, where effect size is either Cohen's d (normal data) or Akinshin's gamma
+    (non-normal data). With 'absolute', the ROPE is defined using an absolute value that is used, i.e., the value of
+    the rope parameter is used without any modification.</p>
+<p>nsamples (integer, default=50000):
+    Number of samples used to estimate the posterior probabilities with the Bayesian signed rank test.</p>
 <p><strong>Returns</strong></p>
 <p>A named tuple of type RankResult with the following entries.</p>
 <p>rankdf (DataFrame):
     Ranked populations including statistics about the populations.</p>
 <p>pvalue (float):
-    p-value of the omnibus test for the difference in central tendency between the populations.</p>
+    p-value of the omnibus test for the difference in central tendency between the populations. Not used with
+    Bayesian statistics.</p>
 <p>omnibus (string):
-   mnibus test that is used for the test of a difference ein the central tendency.</p>
+   Omnibus test that is used for the test of a difference ein the central tendency.</p>
 <p>posthoc (string):
     Posthoc tests that was used. The posthoc test is performed even if the omnibus test is not significant. The
     results should only be used if the p-value of the omnibus test indicates significance. None in case of two
-    populations.</p>
+    populations and Bayesian statistics.</p>
 <p>cd (float):
     The critical distance of the Nemenyi posthoc test, if it was used. Otherwise None.</p>
 <p>all_normal (bool):
@@ -148,9 +171,9 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
 <p>pvals_shapiro (list):
     p-values of the Shapiro-Wilk tests for normality sorted by the order of the input columns.</p>
 <p>homoscedastic (bool):
-    True if populations are homoscedastic, false otherwise.</p>
+    True if populations are homoscedastic, false otherwise. None in case of Bayesian statistics.</p>
 <p>pval_homogeneity (float):
-    p-value of the test for homogeneity.</p>
+    p-value of the test for homogeneity. None in case of Bayesian statistics.</p>
 <p>homogeneity_test (string):
     Test used for homogeneity. Either 'bartlet' or 'levene'.</p>
 <p>alpha (float):
@@ -161,6 +184,24 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
     Number of samples within each population.</p>
 <p>order (string):
     Order of the central tendencies used for ranking.</p>
+<p>posterior_matrix (DataFrame):
+    Matrix with the pair-wise posterior probabilities estimated with the Bayesian signed ranked test. The matrix
+    is a square matrix with the populations sorted by their central tendencies as rows and columns. The value of
+    the matrix in the i-th row and the j-th column contains a 3-tuple (p_smaller, p_equal, p_greater) such that
+    p_smaller is the probability that the population in column j is smaller than the population in row i, p_equal
+    that both populations are equal, and p_larger that population j is larger than population i. If rope==0.0, the
+    matrix contains only 2-tuples (p_smaller, p_greater) because equality is not possible without a ROPE.</p>
+<p>decision_matrix (DataFrame):
+    Matrix with the pair-wise decisions made with the Bayesian signed ranked test. The matrix is a square matrix
+    with the populations sorted by their central tendencies as rows and columns. The value of
+    the matrix in the i-th row and the j-th column contains the value 'smaller' if the population in column j is
+    significantly larger than the population in row i, 'equal' is both populations are equivalent (i.e., have no
+    practically relevant difference), 'larger' if the population in column j is larger than the population in
+    column i, and 'inconclusive' if the statistical analysis is did not yield a definitive result.</p>
+<p>rope (float):
+    Region of Practical Equivalence (ROPE). Same as input parameter.</p>
+<p>rope_mode (string):
+    Mode for calculating the ROPE. Same as input parameter.</p>
 <h1 id="autorank.create_report">create_report</h1>
 
 <pre><code class="language-python">create_report(result, *, decimal_places)
