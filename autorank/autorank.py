@@ -23,7 +23,7 @@ if 'text.usetex' in plt.rcParams and plt.rcParams['text.usetex']:
 
 
 def autorank(data, alpha=0.05, verbose=False, order='descending', approach='frequentist', rope=0.1, rope_mode='effsize',
-             nsamples=50000):
+             nsamples=50000, effect_size=None):
     """
     Automatically compares populations defined in a block-design data frame. Each column in the data frame contains
     the samples for one population. The data must not contain any NaNs. The data must have at least five measurements,
@@ -99,6 +99,11 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
 
     nsamples (integer, default=50000):
         Number of samples used to estimate the posterior probabilities with the Bayesian signed rank test.
+        _(New in Version 1.1.0)_
+
+    effect_size (string, default=None):
+        Effect size measure that is used for reporting. If None, the effect size is automatically selected as described
+        in the flow chart. The following effect sizes are supported: "cohen_d", "cliff_delta", "akinshin_gamma".
         _(New in Version 1.1.0)_
 
     # Returns
@@ -218,6 +223,13 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
     if nsamples < 1:
         raise ValueError('nsamples must be positive')
 
+    if effect_size is not None:
+        if not isinstance(effect_size, str):
+            raise TypeError("effect_size must be a string")
+        if effect_size not in ['cohen_d', 'cliff_delta', 'akinshin_gamma']:
+            raise ValueError("effec_size must be None or one of the following: 'cohen_d', 'cliff_delta', "
+                             "'akinshin_gamma'")
+
     # Bonferoni correction for normality tests
     alpha_normality = alpha / len(data.columns)
     all_normal, pvals_shapiro = test_normality(data, alpha_normality, verbose)
@@ -244,21 +256,22 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
                 print("Rejecting null hypothesis that all variances are equal (p=%f<%f)" % (pval_homogeneity, alpha))
 
         if len(data.columns) == 2:
-            res = rank_two(data, alpha, verbose, all_normal, order)
+            res = rank_two(data, alpha, verbose, all_normal, order, effect_size)
         else:
             if all_normal and var_equal:
-                res = rank_multiple_normal_homoscedastic(data, alpha, verbose, order)
+                res = rank_multiple_normal_homoscedastic(data, alpha, verbose, order, effect_size)
             else:
-                res = rank_multiple_nonparametric(data, alpha, verbose, all_normal, order)
+                res = rank_multiple_nonparametric(data, alpha, verbose, all_normal, order, effect_size)
 
         return RankResult(res.rankdf, res.pvalue, res.cd, res.omnibus, res.posthoc, all_normal, pvals_shapiro,
                           var_equal, pval_homogeneity, homogeneity_test, alpha, alpha_normality, len(data), None, None,
-                          None, None)
+                          None, None, res.effect_size)
     elif approach == 'bayesian':
-        res = rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples)
+        res = rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples, effect_size)
 
         return RankResult(res.rankdf, None, None, 'bayes', 'bayes', all_normal, pvals_shapiro, None, None, None, alpha,
-                          alpha_normality, len(data), res.posterior_matrix, res.decision_matrix, rope, rope_mode)
+                          alpha_normality, len(data), res.posterior_matrix, res.decision_matrix, rope, rope_mode,
+                          res.effect_size)
 
 
 def plot_stats(result, *, allow_insignificant=False, ax=None, width=None):
@@ -383,6 +396,7 @@ def create_report(result, *, decimal_places=3):
     print("The family-wise significance level of the tests is alpha=%.*f." % (decimal_places, result.alpha))
 
     if result.all_normal:
+        not_normal = []
         min_pvalue = min(result.pvals_shapiro)
         print("We failed to reject the null hypothesis that the population is normal for all populations "
               "(minimal observed p-value=%.*f). Therefore, we assume that all populations are "
@@ -464,6 +478,14 @@ def create_report(result, *, decimal_places=3):
                 print('All other differences are inconclusive.')
     elif len(result.rankdf) == 2:
         print("No check for homogeneity was required because we only have two populations.")
+        if result.effect_size == 'cohen_d':
+            effect_size = 'd'
+        elif result.effect_size == 'cliff_delta':
+            effect_size = 'delta'
+        elif result.effect_size == 'akinshin_gamma':
+            effect_size = 'gamma'
+        else:
+            raise ValueError('unknown effect size method, this should not be possible: %s' % result.effect_size)
         if result.omnibus == 'ttest':
             print("Because we have only two populations and both populations are normal, we use the t-test to "
                   "determine differences between the mean values of the populations and report the mean value (M)"
@@ -478,11 +500,11 @@ def create_report(result, *, decimal_places=3):
                 print("We reject the null hypothesis (p=%.*f) of the paired t-test that the mean values of the "
                       "populations %s are "
                       "equal. Therefore, we assume that the mean value of %s is "
-                      "significantly larger than the mean value of %s with a %s effect size (d=%.*f)."
+                      "significantly larger than the mean value of %s with a %s effect size (%s=%.*f)."
                       % (decimal_places, result.pvalue,
                          create_population_string(result.rankdf.index, with_stats=True),
                          result.rankdf.index[0], result.rankdf.index[1],
-                         result.rankdf.magnitude[1], decimal_places, result.rankdf.effect_size[1]))
+                         result.rankdf.magnitude[1], effect_size, decimal_places, result.rankdf.effect_size[1]))
         elif result.omnibus == 'wilcoxon':
             if len(not_normal) == 1:
                 notnormal_str = 'one of them is'
@@ -502,12 +524,12 @@ def create_report(result, *, decimal_places=3):
                 print("We reject the null hypothesis (p=%.*f) of Wilcoxon's signed rank test that population "
                       "%s is not greater than population %s. Therefore, we assume "
                       "that the median of %s is "
-                      "significantly larger than the median value of %s with a %s effect size (delta=%.*f)."
+                      "significantly larger than the median value of %s with a %s effect size (%s=%.*f)."
                       % (decimal_places, result.pvalue,
                          create_population_string(result.rankdf.index[0], with_stats=True),
                          create_population_string(result.rankdf.index[1], with_stats=True),
                          result.rankdf.index[0], result.rankdf.index[1],
-                         result.rankdf.magnitude[1], decimal_places, result.rankdf.effect_size[1]))
+                         result.rankdf.magnitude[1], effect_size, decimal_places, result.rankdf.effect_size[1]))
 
         else:
             raise ValueError('Unknown omnibus test for difference in the central tendency: %s' % result.omnibus)
@@ -647,10 +669,11 @@ def latex_table(result, *, decimal_places=3, label=None):
     columns.remove('ci_lower')
     columns.remove('ci_upper')
     rename_map = {}
-    if result.all_normal:
+    if result.effect_size == 'cohen_d':
         rename_map['effect_size'] = '$d$'
-    else:
-        # rename_map['effect_size'] = r'D-E-L-T-A'
+    elif result.effect_size == 'cliff_delta':
+        rename_map['effect_size'] = r'D-E-L-T-A'
+    elif result.effect_size == 'akinshin_gamma':
         rename_map['effect_size'] = r'G-A-M-M-A'
     rename_map['magnitude'] = 'Magnitude'
     rename_map['mad'] = 'MAD'
@@ -668,7 +691,7 @@ def latex_table(result, *, decimal_places=3, label=None):
 
     float_format = lambda x: ("{:0." + str(decimal_places) + "f}").format(x) if not np.isnan(x) else '-'
     table_string = table_df.to_latex(float_format=float_format, na_rep='-').strip()
-    # table_string = table_string.replace('D-E-L-T-A', r'$\delta$')
+    table_string = table_string.replace('D-E-L-T-A', r'$\delta$')
     table_string = table_string.replace('G-A-M-M-A', r'$\gamma$')
     table_string = table_string.replace(r'p\_equal', r'$P(\textit{equal})$')
     table_string = table_string.replace(r'p\_smaller', r'$P(\textit{smaller})$')

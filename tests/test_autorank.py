@@ -36,7 +36,7 @@ class TestAutorank(unittest.TestCase):
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
         print("BEGIN FREQUENTIST ANALYSIS")
-        autorank(data, 0.05, self.verbose, order='ascending') # check if call works with ascending
+        autorank(data, 0.05, self.verbose, order='ascending')  # check if call works with ascending
         res = autorank(data, 0.05, self.verbose)
         self.assertTrue(res.all_normal)
         self.assertTrue(res.homoscedastic)
@@ -70,7 +70,7 @@ class TestAutorank(unittest.TestCase):
         self.assertTrue(res.all_normal)
         self.assertTrue(res.homoscedastic)
         self.assertEqual(res.omnibus, 'ttest')
-        self.assertFalse(res.pvalue<res.alpha)
+        self.assertFalse(res.pvalue < res.alpha)
         try:
             plot_stats(res)
             self.fail("ValueError expected")
@@ -103,7 +103,7 @@ class TestAutorank(unittest.TestCase):
         self.assertFalse(res.all_normal)
         self.assertTrue(res.homoscedastic)
         self.assertEqual(res.omnibus, 'wilcoxon')
-        self.assertTrue(res.pvalue<res.alpha)
+        self.assertTrue(res.pvalue < res.alpha)
         create_report(res)
         print("----BEGIN LATEX----")
         latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
@@ -358,7 +358,7 @@ class TestAutorank(unittest.TestCase):
         self.assertEqual(res.posthoc, 'nemenyi')
         self.assertTrue(res.pvalue < res.alpha)
         plot_stats(res)
-        plot_stats(res_asc) # this is not covered otherwise, because the CD diagrams respect the order
+        plot_stats(res_asc)  # this is not covered otherwise, because the CD diagrams respect the order
         plt.draw()
         create_report(res)
         print("----BEGIN LATEX----")
@@ -381,7 +381,7 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, stds[i], self.sample_size).clip(0, 1)
-        autorank(data, 0.05, self.verbose, order='ascending') # check if call works with ascending
+        autorank(data, 0.05, self.verbose, order='ascending')  # check if call works with ascending
         res = autorank(data, 0.05, self.verbose)
         self.assertFalse(res.all_normal)
         self.assertFalse(res.homoscedastic)
@@ -429,13 +429,24 @@ class TestAutorank(unittest.TestCase):
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
-        res = autorank(data, alpha=0.05, rope=0.1, rope_mode='absolute', nsamples=100, verbose=self.verbose, approach='bayesian')
+        res = autorank(data, alpha=0.05, rope=0.1, rope_mode='absolute', nsamples=100, verbose=self.verbose,
+                       approach='bayesian')
         self.assertTrue(res.all_normal)
         self.assertEqual(res.omnibus, 'bayes')
         create_report(res)
         print("----BEGIN LATEX----")
         latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
         print("----END LATEX----")
+
+    def test_autorank_force_effect_size(self):
+        std = 0.15
+        means = [0.3, 0.7]
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
+        res = autorank(data, 0.05, self.verbose, effect_size='cliff_delta')
+        self.assertEqual(res.effect_size, 'cliff_delta')
+        create_report(res)
 
     def test_autorank_invalid(self):
         self.assertRaises(TypeError, autorank,
@@ -476,6 +487,12 @@ class TestAutorank(unittest.TestCase):
                           rope=-1.0)
         self.assertRaises(TypeError, autorank,
                           data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
+                          rope_mode=0)
+        self.assertRaises(ValueError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
+                          rope_mode="foo")
+        self.assertRaises(TypeError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
                           nsamples="foo")
         self.assertRaises(TypeError, autorank,
                           data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
@@ -483,12 +500,18 @@ class TestAutorank(unittest.TestCase):
         self.assertRaises(ValueError, autorank,
                           data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
                           nsamples=0)
+        self.assertRaises(TypeError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
+                          effect_size=0)
+        self.assertRaises(ValueError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
+                          effect_size="foo")
 
     def test_plot_stats_invalid(self):
         self.assertRaises(TypeError, plot_stats,
                           result="foo")
         res = RankResult(None, None, None, 'bayes', None, None, None, None, None, None, None, None, None, None, None,
-                         None, None)
+                         None, None, None)
         self.assertRaises(ValueError, plot_stats,
                           result=res)
 
@@ -582,13 +605,13 @@ class TestAutorank(unittest.TestCase):
     def test_bayes_real_world(self):
         data = pd.DataFrame(
          {'Blizzard': {0: 0.28677562910530585, 1: 0.18803486971609495, 2: 0.3318155299087674, 3: 0.2337428123223579,
-                      4: 0.20436577016364246, 5: 0.3928141303141303, 10: 0.21808391183391185, 11: 0.3488636363636364,
-                      13: 0.19159496753246752, 14: 0.22057962646614088, 17: 0.4170813492063495, 18: 0.3652133580705008,
-                      19: 0.44788286302175184, 20: 0.21976328809035572, 21: 0.2535163337762348, 22: 0.1964590028240334,
-                      23: 0.26157183938929995, 24: 0.34817221215477023, 25: 0.06453497851802935, 26: 0.2646603394464393,
-                      27: 0.2288482285421719, 28: 0.25049573442430595, 29: 0.2759963719434383, 30: 0.28873529997951275,
-                      31: 0.2711802666619741, 32: 0.2758169442772093, 33: 0.29300865800865794, 34: 0.28920466899918945,
-                      35: 0.223201333837354, 36: 0.3295345070221307, 37: 0.15489069537364994},
+                       4: 0.20436577016364246, 5: 0.3928141303141303, 10: 0.21808391183391185, 11: 0.3488636363636364,
+                       13: 0.19159496753246752, 14: 0.22057962646614088, 17: 0.4170813492063495, 18: 0.3652133580705008,
+                       19: 0.44788286302175184, 20: 0.21976328809035572, 21: 0.2535163337762348, 22: 0.1964590028240334,
+                       23: 0.26157183938929995, 24: 0.34817221215477023, 25: 0.06453497851802935, 26: 0.2646603394464393,
+                       27: 0.2288482285421719, 28: 0.25049573442430595, 29: 0.2759963719434383, 30: 0.28873529997951275,
+                       31: 0.2711802666619741, 32: 0.2758169442772093, 33: 0.29300865800865794, 34: 0.28920466899918945,
+                       35: 0.223201333837354, 36: 0.3295345070221307, 37: 0.15489069537364994},
          'BugLocator': {0: 0.3913923833443673, 1: 0.2227783818221887, 2: 0.33810327700594617, 3: 0.295288033533152,
                         4: 0.3019967619974965, 5: 0.4812974026663249, 10: 0.3541311576586792, 11: 0.5746520904034691,
                         13: 0.2976822464241802, 14: 0.2705378569341504, 17: 0.7733265455106109, 18: 0.3803902776966097,

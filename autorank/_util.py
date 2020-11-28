@@ -17,7 +17,7 @@ __all__ = ['rank_two', 'rank_multiple_normal_homoscedastic', 'rank_bayesian', 'R
 class RankResult(namedtuple('RankResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc', 'all_normal',
                                            'pvals_shapiro', 'homoscedastic', 'pval_homogeneity', 'homogeneity_test',
                                            'alpha', 'alpha_normality', 'num_samples', 'posterior_matrix',
-                                           'decision_matrix', 'rope', 'rope_mode'))):
+                                           'decision_matrix', 'rope', 'rope_mode', 'effect_size'))):
     __slots__ = ()
 
     def __str__(self):
@@ -37,13 +37,16 @@ class RankResult(namedtuple('RankResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 
                'posterior_matrix=\n%s\n' \
                'decision_matrix=\n%s\n' \
                'rope=%s\n' \
-               'rope_mode=%s)' % (self.rankdf, self.pvalue, self.cd, self.omnibus, self.posthoc, self.all_normal,
-                                  self.pvals_shapiro, self.homoscedastic, self.pval_homogeneity,
-                                  self.homogeneity_test, self.alpha, self.alpha_normality, self.num_samples,
-                                  self.posterior_matrix, self.decision_matrix, self.rope, self.rope_mode)
+               'rope_mode=%s\n' \
+               'effect_size=%s)' % (self.rankdf, self.pvalue, self.cd, self.omnibus, self.posthoc, self.all_normal,
+                                    self.pvals_shapiro, self.homoscedastic, self.pval_homogeneity,
+                                    self.homogeneity_test, self.alpha, self.alpha_normality, self.num_samples,
+                                    self.posterior_matrix, self.decision_matrix, self.rope, self.rope_mode,
+                                    self.effect_size)
 
 
-class _ComparisonResult(namedtuple('ComparisonResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc'))):
+class _ComparisonResult(namedtuple('ComparisonResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc',
+                                                        'effect_size'))):
     __slots__ = ()
 
     def __str__(self):
@@ -51,16 +54,18 @@ class _ComparisonResult(namedtuple('ComparisonResult', ('rankdf', 'pvalue', 'cd'
                'pvalue=%s\n' \
                'cd=%s\n' \
                'omnibus=%s\n' \
-               'posthoc=%s)' % (self.rankdf, self.pvalue, self.cd, self.omnibus, self.posthoc)
+               'posthoc=%s\n' \
+               'effect_size=%s)' % (self.rankdf, self.pvalue, self.cd, self.omnibus, self.posthoc, self.effect_size)
 
 
-class _BayesResult(namedtuple('BayesResult', ('rankdf', 'posterior_matrix', 'decision_matrix'))):
+class _BayesResult(namedtuple('BayesResult', ('rankdf', 'posterior_matrix', 'decision_matrix', 'effect_size'))):
     __slots__ = ()
 
     def __str__(self):
         return 'BayesResult(rankdf=\n%s\n' \
                'posterior_matrix=%s\n' \
-               'decision_matrix=%s' % (self.rankdf, self.posterior_matrix, self.decision_matrix)
+               'decision_matrix=%s\n' \
+               'effect_size=%s' % (self.rankdf, self.posterior_matrix, self.decision_matrix, self.effect_size)
 
 
 def _pooled_std(x, y):
@@ -123,16 +128,16 @@ def _cliffs_delta(x, y):
     return delta
 
 
-def _effect_level(effect_size, method='cohend'):
+def _effect_level(effect_size, method='cohen_d'):
     """
     Determines magnitude of effect size.
     """
     if not isinstance(method, str):
         raise TypeError('method must be of type str')
-    if method not in ['cohend', 'cliffdelta', 'akinshin_gamma']:
-        raise ValueError("method must be one of the following strings: 'cohend', 'cliffdelta'")
+    if method not in ['cohen_d', 'cliff_delta', 'akinshin_gamma']:
+        raise ValueError("method must be one of the following strings: 'cohen_d', 'cliff_delta', 'akinshin_gamma'")
     effect_size = abs(effect_size)
-    if method == 'cliffdelta':
+    if method == 'cliff_delta':
         if effect_size < 0.147:
             return 'negligible'
         elif effect_size < 0.33:
@@ -141,7 +146,7 @@ def _effect_level(effect_size, method='cohend'):
             return 'medium'
         else:
             return 'large'
-    if method == 'cohend' or method == 'akinshin_gamma':
+    if method == 'cohen_d' or method == 'akinshin_gamma':
         if effect_size < 0.2:
             return 'negligible'
         elif effect_size < 0.5:
@@ -204,7 +209,7 @@ def _posterior_decision(probabilities, alpha):
             return 'inconclusive'
 
 
-def rank_two(data, alpha, verbose, all_normal, order):
+def rank_two(data, alpha, verbose, all_normal, order, effect_size):
     """
     Uses paired t-test for normal data and Wilcoxon's signed rank test for other distributions.
     """
@@ -227,11 +232,11 @@ def rank_two(data, alpha, verbose, all_normal, order):
                 "Fail to reject null hypothesis that there is no difference between the distributions (p=%f)" % pval)
         else:
             print("Rejecting null hypothesis that there is no difference between the distributions (p=%f)" % pval)
-    rankdf = _create_result_df_skeleton(data, alpha, all_normal, order)
-    return _ComparisonResult(rankdf, pval, None, omnibus, None)
+    rankdf, effsize_method = _create_result_df_skeleton(data, alpha, all_normal, order, effect_size=effect_size)
+    return _ComparisonResult(rankdf, pval, None, omnibus, None, effsize_method)
 
 
-def rank_multiple_normal_homoscedastic(data, alpha, verbose, order):
+def rank_multiple_normal_homoscedastic(data, alpha, verbose, order, effect_size):
     """
     Analyzes data using repeated measures ANOVA and Tukey HSD.
     """
@@ -258,17 +263,17 @@ def rank_multiple_normal_homoscedastic(data, alpha, verbose, order):
     # delete plot instead of showing
     plt.close()
 
-    rankdf = _create_result_df_skeleton(data, None, True, order)
+    rankdf, effsize_method = _create_result_df_skeleton(data, None, True, order, effect_size=effect_size)
     for population in rankdf.index:
         mean = data.loc[:, population].mean()
         ci_range = tukey_res.halfwidths[data.columns.get_loc(population)]
         lower, upper = mean - ci_range, mean + ci_range
         rankdf.at[population, 'ci_lower'] = lower
         rankdf.at[population, 'ci_upper'] = upper
-    return _ComparisonResult(rankdf, pval, None, 'anova', 'tukeyhsd')
+    return _ComparisonResult(rankdf, pval, None, 'anova', 'tukeyhsd', effsize_method)
 
 
-def rank_multiple_nonparametric(data, alpha, verbose, all_normal, order):
+def rank_multiple_nonparametric(data, alpha, verbose, all_normal, order, effect_size):
     """
     Analyzes data following Demsar using Friedman-Nemenyi.
     """
@@ -285,17 +290,17 @@ def rank_multiple_nonparametric(data, alpha, verbose, all_normal, order):
                 "Differences are significant,"
                 "if the distance between the mean ranks is greater than the critical distance.")
     cd = _critical_distance(alpha, k=len(data.columns), n=len(data))
-    rankdf = _create_result_df_skeleton(data, alpha, all_normal, order)
-    return _ComparisonResult(rankdf, pval, cd, 'friedman', 'nemenyi')
+    rankdf, effsize_method = _create_result_df_skeleton(data, alpha, all_normal, order, effect_size=effect_size)
+    return _ComparisonResult(rankdf, pval, cd, 'friedman', 'nemenyi', effsize_method)
 
 
-def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples):
+def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples, effect_size):
     # TODO check if some outputs for the verbose mode would be helpful
     if all_normal:
         order_column = 'mean'
     else:
         order_column = 'median'
-    result_df = _create_result_df_skeleton(data, alpha/len(data.columns), all_normal, order, order_column=order_column)
+    result_df, effsize_method = _create_result_df_skeleton(data, alpha/len(data.columns), all_normal, order, order_column, effect_size)
     result_df = result_df.drop('meanrank', axis='columns')
     result_df['p_equal'] = np.nan
     result_df['p_smaller'] = np.nan
@@ -329,17 +334,20 @@ def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsam
                 result_df.loc[result_df.index[j], 'p_smaller'] = posterior_probabilities[0]
                 result_df.loc[result_df.index[j], 'decision'] = _posterior_decision(posterior_probabilities, alpha)
 
-    return _BayesResult(result_df, posterior_matrix, decision_matrix)
+    return _BayesResult(result_df, posterior_matrix, decision_matrix, effsize_method)
 
 
-def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='meanrank'):
+def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='meanrank', effect_size=None):
     """
     Creates data frame for results. CI may be left empty in case alpha is None
     """
-    if all_normal:
-        effsize_method = 'cohend'
+    if effect_size is None:
+        if all_normal:
+            effsize_method = 'cohen_d'
+        else:
+            effsize_method = 'akinshin_gamma'
     else:
-        effsize_method = 'akinshin_gamma'
+        effsize_method = effect_size
 
     asc = None
     if order == 'descending':
@@ -349,30 +357,26 @@ def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='mea
 
     rankmat = data.rank(axis='columns', ascending=asc)
     meanranks = rankmat.mean().sort_values()
-    if effsize_method == 'cohend':
+    if all_normal:
         rankdf = pd.DataFrame(index=meanranks.index,
                               columns=['meanrank', 'mean', 'std', 'ci_lower', 'ci_upper', 'effect_size', 'magnitude'])
+        rankdf['mean'] = data.mean().reindex(meanranks.index)
+        rankdf['std'] = data.std().reindex(meanranks.index)
     else:
         rankdf = pd.DataFrame(index=meanranks.index,
                               columns=['meanrank', 'median', 'mad', 'ci_lower', 'ci_upper', 'effect_size', 'magnitude'])
-    rankdf['meanrank'] = meanranks
-
-    # we must first calculate the central tendencies and variability, so we could sort by them
-    if effsize_method == 'cohend':
-        rankdf['mean'] = data.mean().reindex(meanranks.index)
-        rankdf['std'] = data.std().reindex(meanranks.index)
-    elif effsize_method == 'cliffdelta' or effsize_method == 'akinshin_gamma':
         rankdf['median'] = data.median().reindex(meanranks.index)
         for population in rankdf.index:
             rankdf.at[population, 'mad'] = stats.median_absolute_deviation(data.loc[:, population])
+    rankdf['meanrank'] = meanranks
 
     if order_column != 'meanrank':
         rankdf = rankdf.reindex(rankdf[order_column].sort_values(ascending=asc).index)
 
     for population in rankdf.index:
-        if effsize_method == 'cohend':
+        if effsize_method == 'cohen_d':
             effsize = _cohen_d(data.loc[:, rankdf.index[0]], data.loc[:, population])
-        elif effsize_method == 'cliffdelta':
+        elif effsize_method == 'cliff_delta':
             effsize = _cliffs_delta(data.loc[:, rankdf.index[0]], data.loc[:, population])
         elif effsize_method == 'akinshin_gamma':
             effsize = _akinshin_gamma(data.loc[:, rankdf.index[0]], data.loc[:, population])
@@ -386,7 +390,7 @@ def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='mea
             rankdf.at[population, 'ci_lower'] = lower
             rankdf.at[population, 'ci_upper'] = upper
 
-    return rankdf
+    return rankdf, effsize_method
 
 
 def get_sorted_rank_groups(result, reverse):
