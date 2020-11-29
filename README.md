@@ -127,13 +127,14 @@ We then have four variants for statistical testing.
 
 ### Bayesian Tests (2017 Guidelines)
 
-For the Bayesian approach, we can use the Bayesian Signed Rank test, which makes no assumptions on the data. The critial
-aspect of this test is the Region Of Practical Equivalence (ROPE) that defines when differences are practically
+For the Bayesian approach, we can use the Bayesian Signed Rank test, which makes no assumptions on the data. The
+critical aspect of this test is the Region Of Practical Equivalence (ROPE) that defines when differences are practically
 irrelevant. If not configured otherwise, autorank determines the ROPE as follows. 
 - For normal data, the ROPE is defined as 0.1*d, where d is the effect size (Cohen's d). 
 - For non-normal data, the ROPE is defined as 0.1*gamma, where gamma is the effect size (Akinshin's gamma).
 
-This follows [Kruschke, 2019](), who suggest to determine the ROPE as half the size of a small effect. Since a small
+This follows [Kruschke and Liddell, 2018](https://doi.org/10.3758/s13423-016-1221-4), who suggest to determine the ROPE
+as half the size of a small effect. Since a small
 effect with Cohen's d is 0.2, this means that a ROPE of 0.1*d translates to a considering all differences that are not
 even half of a small effect as practically equivalent. The same concept is applied with Akinshin's gamma, which is a
 direct translation of the concept of Cohen's d to robust statistics based on the median absolute deviation instead
