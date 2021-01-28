@@ -673,3 +673,24 @@ class TestAutorank(unittest.TestCase):
 
         latex_table(res)
         create_report(res)
+
+    def test_bayes_absolute_rope_output(self):
+        """
+        Test case for issue #3
+        """
+        raw = np.array([[0.61874876, 0.61219062],
+                        [0.89017217, 0.90443957],
+                        [0.62806089, 0.63185734],
+                        [0.96929193, 0.97255931],
+                        [0.87340513, 0.95460121],
+                        [0.84087749, 0.94438674],
+                        [0.9863088, 0.98558508],
+                        [0.94314842, 0.64510605],
+                        [0.9862604, 0.99173966]])
+        data = pd.DataFrame()
+        data['pop_0'] = raw[:, 0]
+        data['pop_1'] = raw[:, 1]
+
+        result = autorank(data, alpha=0.05, verbose=False, approach="bayesian", rope=1.0, rope_mode="absolute")
+        create_report(result)
+        print(result)

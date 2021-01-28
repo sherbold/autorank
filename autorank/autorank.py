@@ -444,15 +444,17 @@ def create_report(result, *, decimal_places=3):
             print(
                 'We used a fixed value of %.*f to define the region of practical equivalence (ROPE) around the '
                 '%s.' % (decimal_places, result.rope, central_tendency))
-        if {'inconclusive'} == set(result.rankdf['decision']):
+        decision_set = set(result.rankdf['decision'])
+        decision_set.remove('NA')
+        if {'inconclusive'} == decision_set:
             print("We failed to find any conclusive evidence for differences between the populations "
                   "%s." % create_population_string(result.rankdf.index, with_stats=True))
-        elif {'equal'} == set(result.rankdf['decision']):
+        elif {'equal'} == decision_set:
             print(
                 "All populations are equal, i.e., the are no significant and practically relevant differences "
                 "between the populations %s." % create_population_string(result.rankdf.index,
                                                                          with_stats=True))
-        elif {'equal', 'inconclusive'} == set(result.rankdf['decision']):
+        elif {'equal', 'inconclusive'} == decision_set:
             print(
                 "The populations %s are all either equal or the results of the analysis are inconclusive.")
             print(result.decision_matrix)
