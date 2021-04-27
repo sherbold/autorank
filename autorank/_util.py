@@ -85,8 +85,8 @@ def _pooled_mad(x, y):
     nx = len(x)
     ny = len(y)
     dof = nx + ny - 2
-    mad_x = stats.median_absolute_deviation(x)
-    mad_y = stats.median_absolute_deviation(y)
+    mad_x = stats.median_abs_deviation(x)
+    mad_y = stats.median_abs_deviation(y)
     return np.sqrt(((nx - 1) * mad_x ** 2 + (ny - 1) * mad_y ** 2) / dof)
 
 
@@ -367,7 +367,7 @@ def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='mea
                               columns=['meanrank', 'median', 'mad', 'ci_lower', 'ci_upper', 'effect_size', 'magnitude'])
         rankdf['median'] = data.median().reindex(meanranks.index)
         for population in rankdf.index:
-            rankdf.at[population, 'mad'] = stats.median_absolute_deviation(data.loc[:, population])
+            rankdf.at[population, 'mad'] = stats.median_abs_deviation(data.loc[:, population])
     rankdf['meanrank'] = meanranks
 
     if order_column != 'meanrank':
