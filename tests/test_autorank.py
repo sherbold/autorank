@@ -694,3 +694,16 @@ class TestAutorank(unittest.TestCase):
         result = autorank(data, alpha=0.05, verbose=False, approach="bayesian", rope=1.0, rope_mode="absolute")
         create_report(result)
         print(result)
+
+    def test_reording(self):
+        """
+        Test case for issue #7: pvals of shapiro-wilk are not ordered correctly
+        """
+
+        std = 0.2
+        means = [0.5, 0.3, 0.7]
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size)
+        result = autorank(data, 0.05, verbose=True, order="descending", )
+        print(result)

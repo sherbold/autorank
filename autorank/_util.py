@@ -46,7 +46,7 @@ class RankResult(namedtuple('RankResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 
 
 
 class _ComparisonResult(namedtuple('ComparisonResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc',
-                                                        'effect_size'))):
+                                                        'effect_size', 'reorder_pos'))):
     __slots__ = ()
 
     def __str__(self):
@@ -55,17 +55,22 @@ class _ComparisonResult(namedtuple('ComparisonResult', ('rankdf', 'pvalue', 'cd'
                'cd=%s\n' \
                'omnibus=%s\n' \
                'posthoc=%s\n' \
-               'effect_size=%s)' % (self.rankdf, self.pvalue, self.cd, self.omnibus, self.posthoc, self.effect_size)
+               'effect_size=%s\n' \
+               'reorder_pos=%s)' % (self.rankdf, self.pvalue, self.cd, self.omnibus, self.posthoc, self.effect_size,
+                                    self.reorder_pos)
 
 
-class _BayesResult(namedtuple('BayesResult', ('rankdf', 'posterior_matrix', 'decision_matrix', 'effect_size'))):
+class _BayesResult(namedtuple('BayesResult', ('rankdf', 'posterior_matrix', 'decision_matrix', 'effect_size',
+                                              'reorder_pos'))):
     __slots__ = ()
 
     def __str__(self):
         return 'BayesResult(rankdf=\n%s\n' \
                'posterior_matrix=%s\n' \
                'decision_matrix=%s\n' \
-               'effect_size=%s' % (self.rankdf, self.posterior_matrix, self.decision_matrix, self.effect_size)
+               'effect_size=%s\n' \
+               'reorder_pos=%s)' % (self.rankdf, self.posterior_matrix, self.decision_matrix, self.effect_size,
+                                    self.reorder_pos)
 
 
 def _pooled_std(x, y):
@@ -232,8 +237,9 @@ def rank_two(data, alpha, verbose, all_normal, order, effect_size):
                 "Fail to reject null hypothesis that there is no difference between the distributions (p=%f)" % pval)
         else:
             print("Rejecting null hypothesis that there is no difference between the distributions (p=%f)" % pval)
-    rankdf, effsize_method = _create_result_df_skeleton(data, alpha, all_normal, order, effect_size=effect_size)
-    return _ComparisonResult(rankdf, pval, None, omnibus, None, effsize_method)
+    rankdf, effsize_method, reorder_pos = _create_result_df_skeleton(data, alpha, all_normal, order,
+                                                                     effect_size=effect_size)
+    return _ComparisonResult(rankdf, pval, None, omnibus, None, effsize_method, reorder_pos)
 
 
 def rank_multiple_normal_homoscedastic(data, alpha, verbose, order, effect_size):
@@ -263,14 +269,14 @@ def rank_multiple_normal_homoscedastic(data, alpha, verbose, order, effect_size)
     # delete plot instead of showing
     plt.close()
 
-    rankdf, effsize_method = _create_result_df_skeleton(data, None, True, order, effect_size=effect_size)
+    rankdf, effsize_method, reorder_pos = _create_result_df_skeleton(data, None, True, order, effect_size=effect_size)
     for population in rankdf.index:
         mean = data.loc[:, population].mean()
         ci_range = tukey_res.halfwidths[data.columns.get_loc(population)]
         lower, upper = mean - ci_range, mean + ci_range
         rankdf.at[population, 'ci_lower'] = lower
         rankdf.at[population, 'ci_upper'] = upper
-    return _ComparisonResult(rankdf, pval, None, 'anova', 'tukeyhsd', effsize_method)
+    return _ComparisonResult(rankdf, pval, None, 'anova', 'tukeyhsd', effsize_method, reorder_pos)
 
 
 def rank_multiple_nonparametric(data, alpha, verbose, all_normal, order, effect_size):
@@ -290,8 +296,9 @@ def rank_multiple_nonparametric(data, alpha, verbose, all_normal, order, effect_
                 "Differences are significant,"
                 "if the distance between the mean ranks is greater than the critical distance.")
     cd = _critical_distance(alpha, k=len(data.columns), n=len(data))
-    rankdf, effsize_method = _create_result_df_skeleton(data, alpha, all_normal, order, effect_size=effect_size)
-    return _ComparisonResult(rankdf, pval, cd, 'friedman', 'nemenyi', effsize_method)
+    rankdf, effsize_method, reorder_pos = _create_result_df_skeleton(data, alpha, all_normal, order,
+                                                                     effect_size=effect_size)
+    return _ComparisonResult(rankdf, pval, cd, 'friedman', 'nemenyi', effsize_method, reorder_pos)
 
 
 def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples, effect_size):
@@ -300,7 +307,8 @@ def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsam
         order_column = 'mean'
     else:
         order_column = 'median'
-    result_df, effsize_method = _create_result_df_skeleton(data, alpha/len(data.columns), all_normal, order, order_column, effect_size)
+    result_df, effsize_method, reorder_pos = _create_result_df_skeleton(data, alpha/len(data.columns), all_normal,
+                                                                        order, order_column, effect_size)
     result_df = result_df.drop('meanrank', axis='columns')
     result_df['p_equal'] = np.nan
     result_df['p_smaller'] = np.nan
@@ -334,7 +342,7 @@ def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsam
                 result_df.loc[result_df.index[j], 'p_smaller'] = posterior_probabilities[0]
                 result_df.loc[result_df.index[j], 'decision'] = _posterior_decision(posterior_probabilities, alpha)
 
-    return _BayesResult(result_df, posterior_matrix, decision_matrix, effsize_method)
+    return _BayesResult(result_df, posterior_matrix, decision_matrix, effsize_method, reorder_pos)
 
 
 def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='meanrank', effect_size=None):
@@ -356,7 +364,7 @@ def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='mea
         asc = True
 
     rankmat = data.rank(axis='columns', ascending=asc)
-    meanranks = rankmat.mean().sort_values()
+    meanranks = rankmat.mean()
     if all_normal:
         rankdf = pd.DataFrame(index=meanranks.index,
                               columns=['meanrank', 'mean', 'std', 'ci_lower', 'ci_upper', 'effect_size', 'magnitude'])
@@ -370,8 +378,10 @@ def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='mea
             rankdf.at[population, 'mad'] = stats.median_absolute_deviation(data.loc[:, population])
     rankdf['meanrank'] = meanranks
 
-    if order_column != 'meanrank':
-        rankdf = rankdf.reindex(rankdf[order_column].sort_values(ascending=asc).index)
+    # need to know reordering here (see issue #7)
+    reorder_index = rankdf[order_column].sort_values(ascending=asc).index
+    reorder_pos = [reorder_index.get_loc(old_index) for old_index in rankdf.index]
+    rankdf = rankdf.reindex(reorder_index)
 
     for population in rankdf.index:
         if effsize_method == 'cohen_d':
@@ -390,7 +400,7 @@ def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='mea
             rankdf.at[population, 'ci_lower'] = lower
             rankdf.at[population, 'ci_upper'] = upper
 
-    return rankdf, effsize_method
+    return rankdf, effsize_method, reorder_pos
 
 
 def get_sorted_rank_groups(result, reverse):

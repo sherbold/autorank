@@ -262,13 +262,15 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
                 res = rank_multiple_normal_homoscedastic(data, alpha, verbose, order, effect_size)
             else:
                 res = rank_multiple_nonparametric(data, alpha, verbose, all_normal, order, effect_size)
-
+        # need to reorder pvals here (see issue #7)
+        pvals_shapiro = [pvals_shapiro[pos] for pos in res.reorder_pos]
         return RankResult(res.rankdf, res.pvalue, res.cd, res.omnibus, res.posthoc, all_normal, pvals_shapiro,
                           var_equal, pval_homogeneity, homogeneity_test, alpha, alpha_normality, len(data), None, None,
                           None, None, res.effect_size)
     elif approach == 'bayesian':
         res = rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples, effect_size)
-
+        # need to reorder pvals here (see issue #7)
+        pvals_shapiro = [pvals_shapiro[pos] for pos in res.reorder_pos]
         return RankResult(res.rankdf, None, None, 'bayes', 'bayes', all_normal, pvals_shapiro, None, None, None, alpha,
                           alpha_normality, len(data), res.posterior_matrix, res.decision_matrix, rope, rope_mode,
                           res.effect_size)
