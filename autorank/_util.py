@@ -85,8 +85,8 @@ def _pooled_mad(x, y):
     nx = len(x)
     ny = len(y)
     dof = nx + ny - 2
-    mad_x = stats.median_abs_deviation(x)
-    mad_y = stats.median_abs_deviation(y)
+    mad_x = stats.median_abs_deviation(x, scale=1/1.4826)  # scale MAD to be similar to SD of a normal
+    mad_y = stats.median_abs_deviation(y, scale=1/1.4826)  # scale MAD to be similar to SD of a normal
     return np.sqrt(((nx - 1) * mad_x ** 2 + (ny - 1) * mad_y ** 2) / dof)
 
 
