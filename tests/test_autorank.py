@@ -470,21 +470,34 @@ class TestAutorank(unittest.TestCase):
         self.assertTrue(res.all_normal)
         self.assertTrue(res.homoscedastic)
         self.assertEqual(res.omnibus, 'wilcoxon')
-        #self.assertEqual(res.omnibus, 'ttest')
         plot_stats(res)
         plt.draw()
         create_report(res)
 
-    def test_autorank_force_mode_parametric_multiple(self):
+    def test_autorank_force_mode_parametric_multiple_heteroscedastic(self):
         stds = [0.05, 0.1, 0.5, 0.1, 0.05, 0.05]
         means = [0.2, 0.3, 0.5, 0.8, 0.85, 0.9]
         data = pd.DataFrame()
         for i, mean in enumerate(means):
             data['pop_%i' % i] = np.random.normal(mean, stds[i], self.sample_size)
         res = autorank(data, 0.05, self.verbose, force_mode='parametric')
-        print(res)
         self.assertTrue(res.all_normal)
         self.assertFalse(res.homoscedastic)
+        self.assertEqual(res.omnibus, 'anova')
+        self.assertEqual(res.posthoc, 'tukeyhsd')
+        plot_stats(res)
+        plt.draw()
+        create_report(res)
+
+    def test_autorank_force_mode_parametric_multiple_nonnormal(self):
+        std = 0.3
+        means = [0.2, 0.3, 0.5, 0.8, 0.85, 0.9, 0.1]
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
+        res = autorank(data, 0.05, self.verbose, force_mode='parametric')
+        self.assertFalse(res.all_normal)
+        self.assertTrue(res.homoscedastic)
         self.assertEqual(res.omnibus, 'anova')
         self.assertEqual(res.posthoc, 'tukeyhsd')
         plot_stats(res)
@@ -575,7 +588,7 @@ class TestAutorank(unittest.TestCase):
         self.assertRaises(TypeError, plot_stats,
                           result="foo")
         res = RankResult(None, None, None, 'bayes', None, None, None, None, None, None, None, None, None, None, None,
-                         None, None, None)
+                         None, None, None, None)
         self.assertRaises(ValueError, plot_stats,
                           result=res)
 

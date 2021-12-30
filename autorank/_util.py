@@ -17,7 +17,7 @@ __all__ = ['rank_two', 'rank_multiple_normal_homoscedastic', 'rank_bayesian', 'R
 class RankResult(namedtuple('RankResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc', 'all_normal',
                                            'pvals_shapiro', 'homoscedastic', 'pval_homogeneity', 'homogeneity_test',
                                            'alpha', 'alpha_normality', 'num_samples', 'posterior_matrix',
-                                           'decision_matrix', 'rope', 'rope_mode', 'effect_size'))):
+                                           'decision_matrix', 'rope', 'rope_mode', 'effect_size', 'force_mode'))):
     __slots__ = ()
 
     def __str__(self):
@@ -38,11 +38,12 @@ class RankResult(namedtuple('RankResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 
                'decision_matrix=\n%s\n' \
                'rope=%s\n' \
                'rope_mode=%s\n' \
-               'effect_size=%s)' % (self.rankdf, self.pvalue, self.cd, self.omnibus, self.posthoc, self.all_normal,
-                                    self.pvals_shapiro, self.homoscedastic, self.pval_homogeneity,
-                                    self.homogeneity_test, self.alpha, self.alpha_normality, self.num_samples,
-                                    self.posterior_matrix, self.decision_matrix, self.rope, self.rope_mode,
-                                    self.effect_size)
+               'effect_size=%s\n'\
+               'force_mode=%s)' % (self.rankdf, self.pvalue, self.cd, self.omnibus, self.posthoc, self.all_normal,
+                                self.pvals_shapiro, self.homoscedastic, self.pval_homogeneity,
+                                self.homogeneity_test, self.alpha, self.alpha_normality, self.num_samples,
+                                self.posterior_matrix, self.decision_matrix, self.rope, self.rope_mode,
+                                self.effect_size, self.force_mode)
 
 
 class _ComparisonResult(namedtuple('ComparisonResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc',
@@ -238,11 +239,11 @@ def rank_two(data, alpha, verbose, all_normal, order, effect_size, force_mode):
         else:
             print("Rejecting null hypothesis that there is no difference between the distributions (p=%f)" % pval)
     rankdf, effsize_method, reorder_pos = _create_result_df_skeleton(data, alpha, all_normal, order,
-                                                                     effect_size=effect_size)
+                                                                     effect_size=effect_size, force_mode=force_mode)
     return _ComparisonResult(rankdf, pval, None, omnibus, None, effsize_method, reorder_pos)
 
 
-def rank_multiple_normal_homoscedastic(data, alpha, verbose, order, effect_size):
+def rank_multiple_normal_homoscedastic(data, alpha, verbose, order, effect_size, force_mode):
     """
     Analyzes data using repeated measures ANOVA and Tukey HSD.
     """
@@ -269,7 +270,8 @@ def rank_multiple_normal_homoscedastic(data, alpha, verbose, order, effect_size)
     # delete plot instead of showing
     plt.close()
 
-    rankdf, effsize_method, reorder_pos = _create_result_df_skeleton(data, None, True, order, effect_size=effect_size)
+    rankdf, effsize_method, reorder_pos = _create_result_df_skeleton(data, None, True, order,
+                                                                     effect_size=effect_size, force_mode=force_mode)
     for population in rankdf.index:
         mean = data.loc[:, population].mean()
         ci_range = tukey_res.halfwidths[data.columns.get_loc(population)]
@@ -279,7 +281,7 @@ def rank_multiple_normal_homoscedastic(data, alpha, verbose, order, effect_size)
     return _ComparisonResult(rankdf, pval, None, 'anova', 'tukeyhsd', effsize_method, reorder_pos)
 
 
-def rank_multiple_nonparametric(data, alpha, verbose, all_normal, order, effect_size):
+def rank_multiple_nonparametric(data, alpha, verbose, all_normal, order, effect_size, force_mode):
     """
     Analyzes data following Demsar using Friedman-Nemenyi.
     """
@@ -297,7 +299,7 @@ def rank_multiple_nonparametric(data, alpha, verbose, all_normal, order, effect_
                 "if the distance between the mean ranks is greater than the critical distance.")
     cd = _critical_distance(alpha, k=len(data.columns), n=len(data))
     rankdf, effsize_method, reorder_pos = _create_result_df_skeleton(data, alpha, all_normal, order,
-                                                                     effect_size=effect_size)
+                                                                     effect_size=effect_size, force_mode=force_mode)
     return _ComparisonResult(rankdf, pval, cd, 'friedman', 'nemenyi', effsize_method, reorder_pos)
 
 
@@ -345,7 +347,8 @@ def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsam
     return _BayesResult(result_df, posterior_matrix, decision_matrix, effsize_method, reorder_pos)
 
 
-def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='meanrank', effect_size=None):
+def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='meanrank', effect_size=None,
+                               force_mode=None):
     """
     Creates data frame for results. CI may be left empty in case alpha is None
     """
@@ -365,7 +368,7 @@ def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='mea
 
     rankmat = data.rank(axis='columns', ascending=asc)
     meanranks = rankmat.mean()
-    if all_normal:
+    if (force_mode is not None and force_mode=='parametric') or (force_mode is None and all_normal):
         rankdf = pd.DataFrame(index=meanranks.index,
                               columns=['meanrank', 'mean', 'std', 'ci_lower', 'ci_upper', 'effect_size', 'magnitude'])
         rankdf['mean'] = data.mean().reindex(meanranks.index)
