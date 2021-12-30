@@ -9,7 +9,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='autorank',
-    version='1.1.1',
+    version='1.1.2',
     description='Automated ranking of populations in a repeated measures experiment, e.g., to rank different machine '
                 'learning approaches tested on the same data.',
     long_description=long_description,
