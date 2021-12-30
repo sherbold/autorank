@@ -214,21 +214,21 @@ def _posterior_decision(probabilities, alpha):
             return 'inconclusive'
 
 
-def rank_two(data, alpha, verbose, all_normal, order, effect_size):
+def rank_two(data, alpha, verbose, all_normal, order, effect_size, force_mode):
     """
-    Uses paired t-test for normal data and Wilcoxon's signed rank test for other distributions.
+    Uses paired t-test for normal data and Wilcoxon's signed rank test for other distributions. Can be overridden with
+    force_mode.
     """
-    if verbose:
-        if all_normal:
-            print("Using paired t-test")
-        else:
-            print("Using Wilcoxon's signed rank test (one-sided)")
     larger = np.argmax(data.median().values)
     smaller = int(bool(larger - 1))
-    if all_normal:
+    if (force_mode is not None and force_mode == 'parametric') or (force_mode is None and all_normal):
+        if verbose:
+            print("Using paired t-test")
         omnibus = 'ttest'
         pval = stats.ttest_rel(data.iloc[:, larger], data.iloc[:, smaller]).pvalue
     else:
+        if verbose:
+            print("Using Wilcoxon's signed rank test (one-sided)")
         omnibus = 'wilcoxon'
         pval = stats.wilcoxon(data.iloc[:, larger], data.iloc[:, smaller], alternative='greater').pvalue
     if verbose:

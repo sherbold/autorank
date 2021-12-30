@@ -23,7 +23,7 @@ if 'text.usetex' in plt.rcParams and plt.rcParams['text.usetex']:
 
 
 def autorank(data, alpha=0.05, verbose=False, order='descending', approach='frequentist', rope=0.1, rope_mode='effsize',
-             nsamples=50000, effect_size=None):
+             nsamples=50000, effect_size=None, force_mode=None):
     """
     Automatically compares populations defined in a block-design data frame. Each column in the data frame contains
     the samples for one population. The data must not contain any NaNs. The data must have at least five measurements,
@@ -105,6 +105,11 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
         Effect size measure that is used for reporting. If None, the effect size is automatically selected as described
         in the flow chart. The following effect sizes are supported: "cohen_d", "cliff_delta", "akinshin_gamma".
         _(New in Version 1.1.0)_
+
+    force_mode (string, default=None):
+        Can be used to force autorank to use parametric or nonparametric frequentist tests. With 'parametric' you
+        automatically get the t-test/repeated measures ANOVA. With 'nonparametric' you automatically get Wilcoxon's
+        signed rank test/Friedman test.
 
     # Returns
 
@@ -227,8 +232,18 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
         if not isinstance(effect_size, str):
             raise TypeError("effect_size must be a string")
         if effect_size not in ['cohen_d', 'cliff_delta', 'akinshin_gamma']:
-            raise ValueError("effec_size must be None or one of the following: 'cohen_d', 'cliff_delta', "
+            raise ValueError("effect_size must be None or one of the following: 'cohen_d', 'cliff_delta', "
                              "'akinshin_gamma'")
+
+    if force_mode is not None:
+        if not isinstance(force_mode, str):
+            raise TypeError("force mode must be a string")
+        if force_mode not in ['parametric', 'nonparametric']:
+            raise ValueError("force_mode must be None or one of the following 'parametric', 'nonparametric'")
+
+    if force_mode is not None and approach=='frequentist':
+        print("Tests for normality and homoscedacity are ignored for test selection, forcing %s tests" % force_mode)
+
 
     # Bonferoni correction for normality tests
     alpha_normality = alpha / len(data.columns)
@@ -256,9 +271,10 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
                 print("Rejecting null hypothesis that all variances are equal (p=%f<%f)" % (pval_homogeneity, alpha))
 
         if len(data.columns) == 2:
-            res = rank_two(data, alpha, verbose, all_normal, order, effect_size)
+            res = rank_two(data, alpha, verbose, all_normal, order, effect_size, force_mode)
         else:
-            if all_normal and var_equal:
+            if (force_mode is not None and force_mode=='parametric') or \
+               (force_mode is None and all_normal and var_equal):
                 res = rank_multiple_normal_homoscedastic(data, alpha, verbose, order, effect_size)
             else:
                 res = rank_multiple_nonparametric(data, alpha, verbose, all_normal, order, effect_size)

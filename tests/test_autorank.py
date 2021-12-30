@@ -448,6 +448,64 @@ class TestAutorank(unittest.TestCase):
         self.assertEqual(res.effect_size, 'cliff_delta')
         create_report(res)
 
+    def test_autorank_force_mode_parametric_two(self):
+        std = 0.3
+        means = [0.2, 0.5]
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
+        res = autorank(data, 0.05, self.verbose, force_mode='parametric')
+        self.assertFalse(res.all_normal)
+        self.assertTrue(res.homoscedastic)
+        self.assertEqual(res.omnibus, 'ttest')
+        create_report(res)
+
+    def test_autorank_force_mode_nonparametric_two(self):
+        std = 0.15
+        means = [0.3, 0.7]
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
+        res = autorank(data, 0.05, self.verbose, force_mode='nonparametric')
+        self.assertTrue(res.all_normal)
+        self.assertTrue(res.homoscedastic)
+        self.assertEqual(res.omnibus, 'wilcoxon')
+        #self.assertEqual(res.omnibus, 'ttest')
+        plot_stats(res)
+        plt.draw()
+        create_report(res)
+
+    def test_autorank_force_mode_parametric_multiple(self):
+        stds = [0.05, 0.1, 0.5, 0.1, 0.05, 0.05]
+        means = [0.2, 0.3, 0.5, 0.8, 0.85, 0.9]
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, stds[i], self.sample_size)
+        res = autorank(data, 0.05, self.verbose, force_mode='parametric')
+        print(res)
+        self.assertTrue(res.all_normal)
+        self.assertFalse(res.homoscedastic)
+        self.assertEqual(res.omnibus, 'anova')
+        self.assertEqual(res.posthoc, 'tukeyhsd')
+        plot_stats(res)
+        plt.draw()
+        create_report(res)
+
+    def test_autorank_force_mode_nonparametric_multiple(self):
+        std = 0.2
+        means = [0.2, 0.3, 0.5, 0.55, 0.6, 0.6, 0.9]
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size)
+        res = autorank(data, 0.05, self.verbose, force_mode='nonparametric')
+        self.assertTrue(res.all_normal)
+        self.assertTrue(res.homoscedastic)
+        self.assertEqual(res.omnibus, 'friedman')
+        self.assertEqual(res.posthoc, 'nemenyi')
+        plot_stats(res)
+        plt.draw()
+        create_report(res)
+
     def test_autorank_invalid(self):
         self.assertRaises(TypeError, autorank,
                           data="foo")
@@ -506,6 +564,12 @@ class TestAutorank(unittest.TestCase):
         self.assertRaises(ValueError, autorank,
                           data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
                           effect_size="foo")
+        self.assertRaises(TypeError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
+                          force_mode=0)
+        self.assertRaises(ValueError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
+                          force_mode="foo")
 
     def test_plot_stats_invalid(self):
         self.assertRaises(TypeError, plot_stats,
