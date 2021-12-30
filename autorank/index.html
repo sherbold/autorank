@@ -97,7 +97,8 @@
          rope=0.1,
          rope_mode='effsize',
          nsamples=50000,
-         effect_size=None)
+         effect_size=None,
+         force_mode=None)
 </code></pre>
 <p>Automatically compares populations defined in a block-design data frame. Each column in the data frame contains
 the samples for one population. The data must not contain any NaNs. The data must have at least five measurements,
@@ -169,6 +170,10 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
     Effect size measure that is used for reporting. If None, the effect size is automatically selected as described
     in the flow chart. The following effect sizes are supported: "cohen_d", "cliff_delta", "akinshin_gamma".
     <em>(New in Version 1.1.0)</em></p>
+<p>force_mode (string, default=None):
+    Can be used to force autorank to use parametric or nonparametric frequentist tests. With 'parametric' you
+    automatically get the t-test/repeated measures ANOVA. With 'nonparametric' you automatically get Wilcoxon's
+    signed rank test/Friedman test.</p>
 <p><strong>Returns</strong></p>
 <p>A named tuple of type RankResult with the following entries.</p>
 <p>rankdf (DataFrame):
