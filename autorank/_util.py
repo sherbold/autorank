@@ -442,6 +442,7 @@ def cd_diagram(result, reverse, ax, width):
     """
     Creates a Critical Distance diagram.
     """
+    reverse = False
 
     def plot_line(line, color='k', **kwargs):
         ax.plot([pos[0] / width for pos in line], [pos[1] / height for pos in line], color=color, **kwargs)
@@ -508,18 +509,18 @@ def cd_diagram(result, reverse, ax, width):
         chei = cline + minnotsignificant + i * 0.2
         plot_line([(rankpos(sorted_ranks[i]), cline),
                    (rankpos(sorted_ranks[i]), chei),
-                   (textspace - 0.1, chei)],
+                   (textspace + scalewidth + 0.1, chei)],
                   linewidth=0.7)
-        plot_text(textspace - 0.2, chei, names[i], ha="right", va="center")
+        plot_text(textspace + scalewidth + 0.2, chei, names[i], ha='left', va="center")
 
     for i in range(math.ceil(len(sorted_ranks) / 2), len(sorted_ranks)):
         chei = cline + minnotsignificant + (len(sorted_ranks) - i - 1) * 0.2
         plot_line([(rankpos(sorted_ranks[i]), cline),
                    (rankpos(sorted_ranks[i]), chei),
-                   (textspace + scalewidth + 0.1, chei)],
+                   (textspace - 0.1, chei)],
                   linewidth=0.7)
-        plot_text(textspace + scalewidth + 0.2, chei, names[i],
-                  ha="left", va="center")
+        plot_text(textspace - 0.2, chei, names[i],
+                  ha='right', va="center")
 
     # upper scale
     if not reverse:
@@ -542,9 +543,9 @@ def cd_diagram(result, reverse, ax, width):
     no_sig_height = 0.1
     start = cline + 0.2
     for l, r in groups:
-        plot_line([(rankpos(sorted_ranks[l]) - side, start),
-                   (rankpos(sorted_ranks[r]) + side, start)],
-                  linewidth=2.5)
+        plot_line([(rankpos(sorted_ranks[l]) + side, start),
+                (rankpos(sorted_ranks[r]) - side, start)],
+                linewidth=2.5)
         start += no_sig_height
 
     return ax
