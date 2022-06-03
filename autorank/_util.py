@@ -442,8 +442,6 @@ def cd_diagram(result, reverse, ax, width):
     """
     Creates a Critical Distance diagram.
     """
-    reverse = False
-
     def plot_line(line, color='k', **kwargs):
         ax.plot([pos[0] / width for pos in line], [pos[1] / height for pos in line], color=color, **kwargs)
 
