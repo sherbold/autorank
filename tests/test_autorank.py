@@ -784,3 +784,17 @@ class TestAutorank(unittest.TestCase):
             data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size)
         result = autorank(data, 0.05, verbose=True, order="descending", )
         print(result)
+
+    def test_cd_order(self):
+        stds = [0.1, 0.1, 0.5, 0.1, 0.05, 0.05]
+        means = [0.2, 0.3, 0.5, 0.8, 0.85, 0.9]
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, stds[i], self.sample_size).clip(0, 1)
+        res_asc = autorank(data, 0.05, self.verbose, order='ascending')
+        res = autorank(data, 0.05, self.verbose)
+        # currently one plot is always broken (on my machine)
+        plot_stats(res)
+        plot_stats(res_asc)
+        plt.draw()
+        plt.show()
