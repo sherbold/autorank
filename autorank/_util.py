@@ -449,7 +449,9 @@ def cd_diagram(result, reverse, ax, width):
     def plot_text(x, y, s, *args, **kwargs):
         ax.text(x / width, y / height, s, *args, **kwargs)
 
-    sorted_ranks, names, groups = get_sorted_rank_groups(result, reverse)
+    result_copy = RankResult(**result._asdict())
+    result_copy = result_copy._replace(rankdf=result.rankdf.sort_values(by='meanrank'))
+    sorted_ranks, names, groups = get_sorted_rank_groups(result_copy, reverse)
     cd = result.cd
 
     lowv = min(1, int(math.floor(min(sorted_ranks))))
