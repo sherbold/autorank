@@ -46,7 +46,7 @@ jobs:
       if: matrix.os=='ubuntu-18.04' && matrix.python=='3.7.x'
       uses: peaceiris/actions-gh-pages@v3
       with:
-        github_token: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: _build/site
     - name: Publish distribution to PyPI
       if: startsWith(github.event.ref, 'refs/tags') && matrix.os=='ubuntu-18.04' && matrix.python=='3.7.x'
