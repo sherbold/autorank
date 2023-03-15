@@ -44,11 +44,10 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
     - name: Publish documentation of master on gh-pages
       if: matrix.os=='ubuntu-18.04' && matrix.python=='3.7.x'
-      uses: peaceiris/actions-gh-pages@v2.3.1
-      env:
-        ACTIONS_DEPLOY_KEY: ${{ secrets.ACTIONS_DEPLOY_KEY }}
-        PUBLISH_BRANCH: gh-pages
-        PUBLISH_DIR: _build/site
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+        publish_dir: _build/site
     - name: Publish distribution to PyPI
       if: startsWith(github.event.ref, 'refs/tags') && matrix.os=='ubuntu-18.04' && matrix.python=='3.7.x'
       uses: pypa/gh-action-pypi-publish@master
