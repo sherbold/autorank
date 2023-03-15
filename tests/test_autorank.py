@@ -797,4 +797,3 @@ class TestAutorank(unittest.TestCase):
         plot_stats(res)
         plot_stats(res_asc)
         plt.draw()
-        plt.show()
