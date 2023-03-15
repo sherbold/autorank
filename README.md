@@ -2,10 +2,8 @@
 
 [![Actions Status](https://github.com/sherbold/autorank/workflows/Build/badge.svg)](https://github.com/sherbold/autorank/actions)
 [![codecov](https://codecov.io/gh/sherbold/autorank/branch/master/graph/badge.svg)](https://codecov.io/gh/sherbold/autorank)
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/sherbold/autorank.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sherbold/autorank/alerts/)
-[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/sherbold/autorank.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sherbold/autorank/context:python)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.02173/status.svg)](https://doi.org/10.21105/joss.02173)
-
+[![PyPI version](https://badge.fury.io/py/autorank.svg)](https://badge.fury.io/py/autorank)
 
 ## Summary
 
