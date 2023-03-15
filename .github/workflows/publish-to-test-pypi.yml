@@ -11,9 +11,9 @@ jobs:
         python: ['3.7.x', '3.8.x', '3.9.x', '3.10.x', '3.11.x']
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@3
     - name: Set up Python ${{ matrix.python }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
     - name: Install dependencies
@@ -39,7 +39,7 @@ jobs:
         pydocmd build
     - name: Publish to codecov
       if: matrix.os=='ubuntu-22.04' && matrix.python=='3.7.x'
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
     - name: Publish documentation of master on gh-pages
@@ -50,6 +50,6 @@ jobs:
         publish_dir: _build/site
     - name: Publish distribution to PyPI
       if: startsWith(github.event.ref, 'refs/tags') && matrix.os=='ubuntu-22.04' && matrix.python=='3.7.x'
-      uses: pypa/gh-action-pypi-publish@master
+      uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.pypi_password }}
