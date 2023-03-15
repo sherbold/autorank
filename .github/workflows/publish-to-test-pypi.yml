@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-18.04, windows-latest]
-        python: ['3.6.x', '3.7.x', '3.8.x']
+        python: ['3.7.x', '3.8.x']
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@master
@@ -38,19 +38,19 @@ jobs:
         cp flowchart.png docs/
         pydocmd build
     - name: Publish to codecov
-      if: matrix.os=='ubuntu-18.04' && matrix.python=='3.6.x'
+      if: matrix.os=='ubuntu-18.04' && matrix.python=='3.7.x'
       uses: codecov/codecov-action@v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
     - name: Publish documentation of master on gh-pages
-      if: matrix.os=='ubuntu-18.04' && matrix.python=='3.6.x'
+      if: matrix.os=='ubuntu-18.04' && matrix.python=='3.7.x'
       uses: peaceiris/actions-gh-pages@v2.3.1
       env:
         ACTIONS_DEPLOY_KEY: ${{ secrets.ACTIONS_DEPLOY_KEY }}
         PUBLISH_BRANCH: gh-pages
         PUBLISH_DIR: _build/site
     - name: Publish distribution to PyPI
-      if: startsWith(github.event.ref, 'refs/tags') && matrix.os=='ubuntu-18.04' && matrix.python=='3.6.x'
+      if: startsWith(github.event.ref, 'refs/tags') && matrix.os=='ubuntu-18.04' && matrix.python=='3.7.x'
       uses: pypa/gh-action-pypi-publish@master
       with:
         password: ${{ secrets.pypi_password }}
