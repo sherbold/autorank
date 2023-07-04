@@ -247,6 +247,7 @@ def rank_multiple_normal_homoscedastic(data, alpha, verbose, order, effect_size,
     """
     Analyzes data using repeated measures ANOVA and Tukey HSD.
     """
+    data.index.names = ['level_0']
     stacked_data = data.stack().reset_index()
     stacked_data = stacked_data.rename(columns={'level_0': 'id',
                                                 'level_1': 'treatment',
