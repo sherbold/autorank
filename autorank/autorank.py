@@ -282,14 +282,14 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
         pvals_shapiro = [pvals_shapiro[pos] for pos in res.reorder_pos]
         return RankResult(res.rankdf, res.pvalue, res.cd, res.omnibus, res.posthoc, all_normal, pvals_shapiro,
                           var_equal, pval_homogeneity, homogeneity_test, alpha, alpha_normality, len(data), None, None,
-                          None, None, res.effect_size, force_mode)
+                          None, None, None, res.effect_size, force_mode)
     elif approach == 'bayesian':
         res = rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples, effect_size)
         # need to reorder pvals here (see issue #7)
         pvals_shapiro = [pvals_shapiro[pos] for pos in res.reorder_pos]
         return RankResult(res.rankdf, None, None, 'bayes', 'bayes', all_normal, pvals_shapiro, None, None, None, alpha,
-                          alpha_normality, len(data), res.posterior_matrix, res.decision_matrix, rope, rope_mode,
-                          res.effect_size, force_mode)
+                          alpha_normality, len(data), res.sample_matrix, res.posterior_matrix, res.decision_matrix, rope,
+                          rope_mode, res.effect_size, force_mode)
 
 
 def plot_stats(result, *, allow_insignificant=False, ax=None, width=None):
