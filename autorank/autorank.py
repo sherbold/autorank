@@ -162,7 +162,7 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
 
     sample_matrix (DataFrame):
         Matrix with SignedRankTest objects from package baycomp. Can be used to generate plots, e.g. using the
-        in-built plot() method of baycomp.
+        built-in plot() method of baycomp.
 
     posterior_matrix (DataFrame):
         Matrix with the pair-wise posterior probabilities estimated with the Bayesian signed ranked test. The matrix
