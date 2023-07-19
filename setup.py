@@ -15,7 +15,7 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     install_requires=['numpy', 'pandas>=0.25.0', 'statsmodels>=0.10.0', 'scipy>=1.5.0', 'matplotlib>=3.1.3',
-                      'baycomp>=1.0.2'],
+                      'baycomp @ git+https://github.com/janezd/baycomp.git@9fc56da7c8b56eb1dbd2df725e18606818434a20#egg=baycomp-1.0.2'],
     author='sherbold',
     author_email='herbold@cs.uni.goettingen.de',
     url='https://github.com/sherbold/autorank',
