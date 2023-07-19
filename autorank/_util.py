@@ -303,7 +303,7 @@ def rank_multiple_nonparametric(data, alpha, verbose, all_normal, order, effect_
     return _ComparisonResult(rankdf, pval, cd, 'friedman', 'nemenyi', effsize_method, reorder_pos)
 
 
-def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples, effect_size):
+def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples, effect_size, random_state):
     # TODO check if some outputs for the verbose mode would be helpful
     if all_normal:
         order_column = 'mean'
@@ -334,7 +334,7 @@ def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsam
             else:
                 raise ValueError("Unknown rope_mode method, this should not be possible.")
             posterior_probabilities = two_on_multiple(x=reordered_data.iloc[:, i], y=reordered_data.iloc[:, j],
-                                                      rope=cur_rope, nsamples=nsamples)
+                                                      rope=cur_rope, nsamples=nsamples, random_state=random_state)
             posterior_matrix.iloc[i, j] = posterior_probabilities
             decision_matrix.iloc[i, j] = _posterior_decision(posterior_probabilities, alpha)
             decision_matrix.iloc[j, i] = _posterior_decision(posterior_probabilities[::-1], alpha)
