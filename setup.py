@@ -14,7 +14,7 @@ setup(
                 'learning approaches tested on the same data.',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    install_requires=['numpy', 'pandas>=2.0.3', 'statsmodels>=0.14.0', 'scipy>=1.11.1', 'matplotlib>=3.7.2',
+    install_requires=['numpy', 'pandas>=2.0.3', 'statsmodels>=0.14.0', 'scipy>=1.10.1', 'matplotlib>=3.7.2',
                       'baycomp>=1.0.2', 'jinja2>=3.1.2'],
     author='sherbold',
     author_email='herbold@cs.uni.goettingen.de',
