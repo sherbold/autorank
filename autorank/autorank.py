@@ -514,6 +514,8 @@ def create_report(result, *, decimal_places=3):
         else:
             raise ValueError('unknown effect size method, this should not be possible: %s' % result.effect_size)
         if result.omnibus == 'ttest':
+            larger = np.argmax(result.rankdf['mean'].values)
+            smaller = int(bool(larger - 1))
             if result.all_normal:
                 print("Because we have only two populations and both populations are normal, we use the t-test to "
                       "determine differences between the mean values of the populations and report the mean value (M)"
@@ -541,9 +543,11 @@ def create_report(result, *, decimal_places=3):
                       "significantly larger than the mean value of %s with a %s effect size (%s=%.*f)."
                       % (decimal_places, result.pvalue,
                          create_population_string(result.rankdf.index, with_stats=True),
-                         result.rankdf.index[0], result.rankdf.index[1],
-                         result.rankdf.magnitude[1], effect_size, decimal_places, result.rankdf.effect_size[1]))
+                         result.rankdf.index[larger], result.rankdf.index[smaller],
+                         result.rankdf.magnitude[larger], effect_size, decimal_places, result.rankdf.effect_size[larger]))
         elif result.omnibus == 'wilcoxon':
+            larger = np.argmax(result.rankdf['median'].values)
+            smaller = int(bool(larger - 1))
             if result.all_normal:
                 print("Because we have only two populations and both populations are normal, we should use the t-test "
                       "to determine differences between the mean values of the populations and report the mean value "
@@ -563,18 +567,18 @@ def create_report(result, *, decimal_places=3):
                       "population %s is not greater than population %s . Therefore, we "
                       "assume that there is no statistically significant difference between the medians of the "
                       "populations." % (decimal_places, result.pvalue,
-                                        create_population_string(result.rankdf.index[0], with_stats=True),
-                                        create_population_string(result.rankdf.index[1], with_stats=True)))
+                                        create_population_string(result.rankdf.index[larger], with_stats=True),
+                                        create_population_string(result.rankdf.index[smaller], with_stats=True)))
             else:
                 print("We reject the null hypothesis (p=%.*f) of Wilcoxon's signed rank test that population "
                       "%s is not greater than population %s. Therefore, we assume "
                       "that the median of %s is "
                       "significantly larger than the median value of %s with a %s effect size (%s=%.*f)."
                       % (decimal_places, result.pvalue,
-                         create_population_string(result.rankdf.index[0], with_stats=True),
-                         create_population_string(result.rankdf.index[1], with_stats=True),
-                         result.rankdf.index[0], result.rankdf.index[1],
-                         result.rankdf.magnitude[1], effect_size, decimal_places, result.rankdf.effect_size[1]))
+                         create_population_string(result.rankdf.index[larger], with_stats=True),
+                         create_population_string(result.rankdf.index[smaller], with_stats=True),
+                         result.rankdf.index[larger], result.rankdf.index[smaller],
+                         result.rankdf.magnitude[larger], effect_size, decimal_places, result.rankdf.effect_size[larger]))
         else:
             raise ValueError('Unknown omnibus test for difference in the central tendency: %s' % result.omnibus)
     else:
