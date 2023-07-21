@@ -161,8 +161,10 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
         Order of the central tendencies used for ranking.
 
     sample_matrix (DataFrame):
-        Matrix with SignedRankTest objects from package baycomp. Can be used to generate plots, e.g. using the
-        built-in plot() method of baycomp.
+        Matrix with SignedRankTest objects from package baycomp. Can be used to do further analysis, e.g. to generate
+        plots using the built-in plot() method of baycomp. For a detailed description of methods and parameters, see
+        the documentation of baycomp: https://baycomp.readthedocs.io/en/latest/classes.html#multiple-data-sets
+        _(New in Version 1.2.0)_
 
     posterior_matrix (DataFrame):
         Matrix with the pair-wise posterior probabilities estimated with the Bayesian signed ranked test. The matrix
