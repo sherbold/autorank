@@ -1,2 +1,6 @@
 venv
 .idea/
+.vscode/
+build/
+*__pycache__/
+*.egg-info/
