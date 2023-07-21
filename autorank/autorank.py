@@ -114,7 +114,7 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
     random_state (integer, default=None):
         Seed for random state. Forwarded to Bayesian signed rank test to enable reproducible sampling and, thereby,
         reproducible results.
-        _(New in Version 1.1.4)_
+        _(New in Version 1.2.0)_
 
     # Returns
 
