@@ -128,8 +128,10 @@ We then have four variants for statistical testing.
 For the Bayesian approach, we can use the Bayesian Signed Rank test, which makes no assumptions on the data. The
 critical aspect of this test is the Region Of Practical Equivalence (ROPE) that defines when differences are practically
 irrelevant. If not configured otherwise, autorank determines the ROPE as follows. 
-- For normal data, the ROPE is defined as 0.1*d, where d is the effect size (Cohen's d). 
-- For non-normal data, the ROPE is defined as 0.1*gamma, where gamma is the effect size (Akinshin's gamma).
+- For normal data, the ROPE is defined as 0.1*STD, where STD is the standard deviation. This means the ROPE is the area
+  with an effect size of less than d=0.1 (Cohen's d).
+- For non-normal data, the ROPE is defined as 0.1*MAD, where MAD is the mean absolute deviation of the median. This means
+  the ROPE is the area with an effect size of less than gamma=0.1 (Akinshin's gamma)
 
 This follows [Kruschke and Liddell, 2018](https://doi.org/10.3758/s13423-016-1221-4), who suggest to determine the ROPE
 as half the size of a small effect. Since a small
