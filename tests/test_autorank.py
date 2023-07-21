@@ -588,7 +588,7 @@ class TestAutorank(unittest.TestCase):
         self.assertRaises(TypeError, plot_stats,
                           result="foo")
         res = RankResult(None, None, None, 'bayes', None, None, None, None, None, None, None, None, None, None, None,
-                         None, None, None, None)
+                         None, None, None, None, None)
         self.assertRaises(ValueError, plot_stats,
                           result=res)
 
