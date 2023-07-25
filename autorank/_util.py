@@ -7,7 +7,7 @@ from scipy import stats
 from statsmodels.stats.libqsturng import qsturng
 from statsmodels.stats.multicomp import MultiComparison
 from statsmodels.stats.anova import AnovaRM
-from baycomp import two_on_multiple
+from baycomp import SignedRankTest
 from collections import namedtuple
 
 __all__ = ['rank_two', 'rank_multiple_normal_homoscedastic', 'rank_bayesian', 'RankResult',
@@ -16,8 +16,9 @@ __all__ = ['rank_two', 'rank_multiple_normal_homoscedastic', 'rank_bayesian', 'R
 
 class RankResult(namedtuple('RankResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc', 'all_normal',
                                            'pvals_shapiro', 'homoscedastic', 'pval_homogeneity', 'homogeneity_test',
-                                           'alpha', 'alpha_normality', 'num_samples', 'posterior_matrix',
-                                           'decision_matrix', 'rope', 'rope_mode', 'effect_size', 'force_mode'))):
+                                           'alpha', 'alpha_normality', 'num_samples', 'sample_matrix',
+                                           'posterior_matrix', 'decision_matrix', 'rope', 'rope_mode', 'effect_size',
+                                           'force_mode'))):
     __slots__ = ()
 
     def __str__(self):
@@ -61,7 +62,7 @@ class _ComparisonResult(namedtuple('ComparisonResult', ('rankdf', 'pvalue', 'cd'
                                     self.reorder_pos)
 
 
-class _BayesResult(namedtuple('BayesResult', ('rankdf', 'posterior_matrix', 'decision_matrix', 'effect_size',
+class _BayesResult(namedtuple('BayesResult', ('rankdf', 'sample_matrix', 'posterior_matrix', 'decision_matrix', 'effect_size',
                                               'reorder_pos'))):
     __slots__ = ()
 
@@ -319,6 +320,7 @@ def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsam
     # re-order columns to have the same order as results
     reordered_data = data.reindex(result_df.index, axis=1)
 
+    sample_matrix = pd.DataFrame(index=reordered_data.columns, columns=reordered_data.columns)
     posterior_matrix = pd.DataFrame(index=reordered_data.columns, columns=reordered_data.columns)
     decision_matrix = pd.DataFrame(index=reordered_data.columns, columns=reordered_data.columns)
     for i in range(len(data.columns)):
@@ -333,8 +335,10 @@ def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsam
                 cur_rope = rope
             else:
                 raise ValueError("Unknown rope_mode method, this should not be possible.")
-            posterior_probabilities = two_on_multiple(x=reordered_data.iloc[:, i], y=reordered_data.iloc[:, j],
-                                                      rope=cur_rope, nsamples=nsamples, random_state=random_state)
+            sample = SignedRankTest(x=reordered_data.iloc[:, i], y=reordered_data.iloc[:, j], rope=cur_rope,
+                                    nsamples=nsamples, random_state=random_state)
+            posterior_probabilities = sample.probs()
+            sample_matrix.iloc[i, j] = sample
             posterior_matrix.iloc[i, j] = posterior_probabilities
             decision_matrix.iloc[i, j] = _posterior_decision(posterior_probabilities, alpha)
             decision_matrix.iloc[j, i] = _posterior_decision(posterior_probabilities[::-1], alpha)
@@ -344,7 +348,7 @@ def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsam
                 result_df.loc[result_df.index[j], 'p_smaller'] = posterior_probabilities[0]
                 result_df.loc[result_df.index[j], 'decision'] = _posterior_decision(posterior_probabilities, alpha)
 
-    return _BayesResult(result_df, posterior_matrix, decision_matrix, effsize_method, reorder_pos)
+    return _BayesResult(result_df, sample_matrix, posterior_matrix, decision_matrix, effsize_method, reorder_pos)
 
 
 def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='meanrank', effect_size=None,

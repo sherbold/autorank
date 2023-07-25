@@ -165,6 +165,12 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
     order (string):
         Order of the central tendencies used for ranking.
 
+    sample_matrix (DataFrame):
+        Matrix with SignedRankTest objects from package baycomp. Can be used to do further analysis, e.g. to generate
+        plots using the built-in plot() method of baycomp. For a detailed description of methods and parameters, see
+        the documentation of baycomp: https://baycomp.readthedocs.io/en/latest/classes.html#multiple-data-sets
+        _(New in Version 1.2.0)_
+
     posterior_matrix (DataFrame):
         Matrix with the pair-wise posterior probabilities estimated with the Bayesian signed ranked test. The matrix
         is a square matrix with the populations sorted by their central tendencies as rows and columns. The value of
@@ -287,14 +293,14 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
         pvals_shapiro = [pvals_shapiro[pos] for pos in res.reorder_pos]
         return RankResult(res.rankdf, res.pvalue, res.cd, res.omnibus, res.posthoc, all_normal, pvals_shapiro,
                           var_equal, pval_homogeneity, homogeneity_test, alpha, alpha_normality, len(data), None, None,
-                          None, None, res.effect_size, force_mode)
+                          None, None, None, res.effect_size, force_mode)
     elif approach == 'bayesian':
         res = rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples, effect_size, random_state)
         # need to reorder pvals here (see issue #7)
         pvals_shapiro = [pvals_shapiro[pos] for pos in res.reorder_pos]
         return RankResult(res.rankdf, None, None, 'bayes', 'bayes', all_normal, pvals_shapiro, None, None, None, alpha,
-                          alpha_normality, len(data), res.posterior_matrix, res.decision_matrix, rope, rope_mode,
-                          res.effect_size, force_mode)
+                          alpha_normality, len(data), res.sample_matrix, res.posterior_matrix, res.decision_matrix, rope,
+                          rope_mode, res.effect_size, force_mode)
 
 
 def plot_stats(result, *, allow_insignificant=False, ax=None, width=None):
@@ -513,6 +519,8 @@ def create_report(result, *, decimal_places=3):
         else:
             raise ValueError('unknown effect size method, this should not be possible: %s' % result.effect_size)
         if result.omnibus == 'ttest':
+            larger = np.argmax(result.rankdf['mean'].values)
+            smaller = int(bool(larger - 1))
             if result.all_normal:
                 print("Because we have only two populations and both populations are normal, we use the t-test to "
                       "determine differences between the mean values of the populations and report the mean value (M)"
@@ -540,9 +548,11 @@ def create_report(result, *, decimal_places=3):
                       "significantly larger than the mean value of %s with a %s effect size (%s=%.*f)."
                       % (decimal_places, result.pvalue,
                          create_population_string(result.rankdf.index, with_stats=True),
-                         result.rankdf.index[0], result.rankdf.index[1],
-                         result.rankdf.magnitude[1], effect_size, decimal_places, result.rankdf.effect_size[1]))
+                         result.rankdf.index[larger], result.rankdf.index[smaller],
+                         result.rankdf.magnitude[larger], effect_size, decimal_places, result.rankdf.effect_size[larger]))
         elif result.omnibus == 'wilcoxon':
+            larger = np.argmax(result.rankdf['median'].values)
+            smaller = int(bool(larger - 1))
             if result.all_normal:
                 print("Because we have only two populations and both populations are normal, we should use the t-test "
                       "to determine differences between the mean values of the populations and report the mean value "
@@ -562,18 +572,18 @@ def create_report(result, *, decimal_places=3):
                       "population %s is not greater than population %s . Therefore, we "
                       "assume that there is no statistically significant difference between the medians of the "
                       "populations." % (decimal_places, result.pvalue,
-                                        create_population_string(result.rankdf.index[0], with_stats=True),
-                                        create_population_string(result.rankdf.index[1], with_stats=True)))
+                                        create_population_string(result.rankdf.index[larger], with_stats=True),
+                                        create_population_string(result.rankdf.index[smaller], with_stats=True)))
             else:
                 print("We reject the null hypothesis (p=%.*f) of Wilcoxon's signed rank test that population "
                       "%s is not greater than population %s. Therefore, we assume "
                       "that the median of %s is "
                       "significantly larger than the median value of %s with a %s effect size (%s=%.*f)."
                       % (decimal_places, result.pvalue,
-                         create_population_string(result.rankdf.index[0], with_stats=True),
-                         create_population_string(result.rankdf.index[1], with_stats=True),
-                         result.rankdf.index[0], result.rankdf.index[1],
-                         result.rankdf.magnitude[1], effect_size, decimal_places, result.rankdf.effect_size[1]))
+                         create_population_string(result.rankdf.index[larger], with_stats=True),
+                         create_population_string(result.rankdf.index[smaller], with_stats=True),
+                         result.rankdf.index[larger], result.rankdf.index[smaller],
+                         result.rankdf.magnitude[larger], effect_size, decimal_places, result.rankdf.effect_size[larger]))
         else:
             raise ValueError('Unknown omnibus test for difference in the central tendency: %s' % result.omnibus)
     else:
