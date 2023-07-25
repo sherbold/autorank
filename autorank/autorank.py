@@ -23,7 +23,7 @@ if 'text.usetex' in plt.rcParams and plt.rcParams['text.usetex']:
 
 
 def autorank(data, alpha=0.05, verbose=False, order='descending', approach='frequentist', rope=0.1, rope_mode='effsize',
-             nsamples=50000, effect_size=None, force_mode=None):
+             nsamples=50000, effect_size=None, force_mode=None, random_state=None):
     """
     Automatically compares populations defined in a block-design data frame. Each column in the data frame contains
     the samples for one population. The data must not contain any NaNs. The data must have at least five measurements,
@@ -110,6 +110,11 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
         Can be used to force autorank to use parametric or nonparametric frequentist tests. With 'parametric' you
         automatically get the t-test/repeated measures ANOVA. With 'nonparametric' you automatically get Wilcoxon's
         signed rank test/Friedman test.
+
+    random_state (integer, default=None):
+        Seed for random state. Forwarded to Bayesian signed rank test to enable reproducible sampling and, thereby,
+        reproducible results.
+        _(New in Version 1.2.0)_
 
     # Returns
 
@@ -290,7 +295,7 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
                           var_equal, pval_homogeneity, homogeneity_test, alpha, alpha_normality, len(data), None, None,
                           None, None, None, res.effect_size, force_mode)
     elif approach == 'bayesian':
-        res = rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples, effect_size)
+        res = rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples, effect_size, random_state)
         # need to reorder pvals here (see issue #7)
         pvals_shapiro = [pvals_shapiro[pos] for pos in res.reorder_pos]
         return RankResult(res.rankdf, None, None, 'bayes', 'bayes', all_normal, pvals_shapiro, None, None, None, alpha,
