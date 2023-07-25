@@ -797,3 +797,18 @@ class TestAutorank(unittest.TestCase):
         plot_stats(res)
         plot_stats(res_asc)
         plt.draw()
+
+    def test_fix_random_state(self):
+        std = 0.15
+        means = [0.3, 0.3]
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
+
+        res_42_1 = autorank(data, alpha=0.05, nsamples=100, verbose=self.verbose, approach='bayesian', random_state=42)
+        res_42_2 = autorank(data, alpha=0.05, nsamples=100, verbose=self.verbose, approach='bayesian', random_state=42)
+        res_43_1 = autorank(data, alpha=0.05, nsamples=100, verbose=self.verbose, approach='bayesian', random_state=43)
+
+        self.assertTrue(res_42_1.posterior_matrix.equals(res_42_2.posterior_matrix))
+        self.assertFalse(res_42_1.posterior_matrix.equals(res_43_1.posterior_matrix))
+        
