@@ -4,6 +4,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
+import sys
+import importlib.util
+
+is_available = importlib.util.find_spec("sklearn")
+if not is_available:
+    print(
+        """scikit-learn needs to be installed for this example.
+You can install it by running the following command:
+    pip install scikit-learn"""
+    )
+    sys.exit(1)
+
 from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.datasets import make_moons, make_circles, make_classification, make_hastie_10_2
@@ -12,7 +24,7 @@ from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
-from autorank import autorank, create_report
+from autorank import autorank, create_report, latex_table, plot_stats
 
 
 clf_names = ["Linear SVM", "RBF SVM", "Decision Tree", "Random Forest", "Neural Net", "Naive Bayes"]
