@@ -433,7 +433,7 @@ def get_sorted_rank_groups(result, reverse):
     for i in range(len(sorted_ranks)):
         max_j = None
         for j in range(i + 1, len(sorted_ranks)):
-            if abs(sorted_ranks[i] - sorted_ranks[j]) <= critical_difference:
+            if abs(sorted_ranks.iloc[i] - sorted_ranks.iloc[j]) <= critical_difference:
                 max_j = j
                 # print(i, j)
         if max_j is not None and max_j > cur_max_j:
@@ -512,16 +512,16 @@ def cd_diagram(result, reverse, ax, width):
 
     for i in range(math.ceil(len(sorted_ranks) / 2)):
         chei = cline + minnotsignificant + i * 0.2
-        plot_line([(rankpos(sorted_ranks[i]), cline),
-                   (rankpos(sorted_ranks[i]), chei),
+        plot_line([(rankpos(sorted_ranks.iloc[i]), cline),
+                   (rankpos(sorted_ranks.iloc[i]), chei),
                    (textspace - 0.1, chei)],
                   linewidth=0.7)
         plot_text(textspace - 0.2, chei, names[i], ha="right", va="center")
 
     for i in range(math.ceil(len(sorted_ranks) / 2), len(sorted_ranks)):
         chei = cline + minnotsignificant + (len(sorted_ranks) - i - 1) * 0.2
-        plot_line([(rankpos(sorted_ranks[i]), cline),
-                   (rankpos(sorted_ranks[i]), chei),
+        plot_line([(rankpos(sorted_ranks.iloc[i]), cline),
+                   (rankpos(sorted_ranks.iloc[i]), chei),
                    (textspace + scalewidth + 0.1, chei)],
                   linewidth=0.7)
         plot_text(textspace + scalewidth + 0.2, chei, names[i],
@@ -548,8 +548,8 @@ def cd_diagram(result, reverse, ax, width):
     no_sig_height = 0.1
     start = cline + 0.2
     for l, r in groups:
-        plot_line([(rankpos(sorted_ranks[l]) - side, start),
-                   (rankpos(sorted_ranks[r]) + side, start)],
+        plot_line([(rankpos(sorted_ranks.iloc[l]) - side, start),
+                   (rankpos(sorted_ranks.iloc[r]) + side, start)],
                   linewidth=2.5)
         start += no_sig_height
 
