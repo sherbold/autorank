@@ -549,7 +549,7 @@ def create_report(result, *, decimal_places=3):
                       % (decimal_places, result.pvalue,
                          create_population_string(result.rankdf.index, with_stats=True),
                          result.rankdf.index[larger], result.rankdf.index[smaller],
-                         result.rankdf.magnitude[larger], effect_size, decimal_places, result.rankdf.effect_size[larger]))
+                         result.rankdf.magnitude.iloc[larger], effect_size, decimal_places, result.rankdf.effect_size.iloc[larger]))
         elif result.omnibus == 'wilcoxon':
             larger = np.argmax(result.rankdf['median'].values)
             smaller = int(bool(larger - 1))
@@ -583,7 +583,7 @@ def create_report(result, *, decimal_places=3):
                          create_population_string(result.rankdf.index[larger], with_stats=True),
                          create_population_string(result.rankdf.index[smaller], with_stats=True),
                          result.rankdf.index[larger], result.rankdf.index[smaller],
-                         result.rankdf.magnitude[larger], effect_size, decimal_places, result.rankdf.effect_size[larger]))
+                         result.rankdf.magnitude.iloc[larger], effect_size, decimal_places, result.rankdf.effect_size.iloc[larger]))
         else:
             raise ValueError('Unknown omnibus test for difference in the central tendency: %s' % result.omnibus)
     else:
