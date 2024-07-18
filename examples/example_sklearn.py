@@ -11,7 +11,7 @@ is_available = importlib.util.find_spec("sklearn")
 if not is_available:
     print(
         """scikit-learn needs to be installed for this example.
-You can install it by running the following command:
+If you use pip as a package manager, you can install it with the following command:
     pip install scikit-learn"""
     )
     sys.exit(1)
