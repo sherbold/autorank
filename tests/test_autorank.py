@@ -811,4 +811,15 @@ class TestAutorank(unittest.TestCase):
 
         self.assertTrue(res_42_1.posterior_matrix.equals(res_42_2.posterior_matrix))
         self.assertFalse(res_42_1.posterior_matrix.equals(res_43_1.posterior_matrix))
-        
+    
+    def test_latex_duplicate_columns(self):
+        std = 0.3
+        means = [0.2, 0.3, 0.5, 0.8, 0.85, 0.9]
+        sample_size = 50
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, std, sample_size).clip(0, 1)
+
+        res = autorank(data, alpha=0.05, verbose=False)
+        latex_table(res)
+        latex_table(res)

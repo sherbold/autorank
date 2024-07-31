@@ -750,7 +750,7 @@ def latex_table(result, *, decimal_places=3, label=None):
     if label is None:
         label = 'tbl:stat_results'
 
-    table_df = result.rankdf
+    table_df = result.rankdf.copy(deep=True)
     columns = table_df.columns.to_list()
     if result.omnibus != 'bayes' and result.pvalue >= result.alpha or \
        result.omnibus == 'bayes' and len({'smaller', 'larger'}.intersection(set(result.rankdf['decision']))) == 0:
