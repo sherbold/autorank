@@ -486,7 +486,7 @@ def create_report(result, *, decimal_places=3):
                                                                          with_stats=True))
         elif {'equal', 'inconclusive'} == decision_set:
             print(
-                "The populations %s are all either equal or the results of the analysis are inconclusive.")
+                "The populations %s are all either equal or the results of the analysis are inconclusive." % create_population_string(result.rankdf.index, with_stats=True))
             print(result.decision_matrix)
         else:
             print("We found significant and practically relevant differences between the populations "
