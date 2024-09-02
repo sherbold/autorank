@@ -426,7 +426,7 @@ def get_sorted_rank_groups(result, reverse):
             critical_difference = result.cd
         else:
             sorted_ranks = result.rankdf['mean']
-            critical_difference = (result.rankdf.ci_upper[0] - result.rankdf.ci_lower[0]) / 2
+            critical_difference = (result.rankdf.ci_upper.iloc[0] - result.rankdf.ci_lower.iloc[0]) / 2
 
     groups = []
     cur_max_j = -1
@@ -574,7 +574,7 @@ def ci_plot(result, reverse, ax, width):
         fig = plt.figure(figsize=(width, height))
         fig.set_facecolor('white')
         ax = plt.gca()
-    ax.errorbar(sorted_means, range(len(sorted_means)), xerr=(ci_upper[0] - ci_lower[0]) / 2, marker='o',
+    ax.errorbar(sorted_means, range(len(sorted_means)), xerr=(ci_upper.iloc[0] - ci_lower.iloc[0]) / 2, marker='o',
                 linestyle='None', color='k', ecolor='k')
     ax.set_yticks(range(len(names)))
     ax.set_yticklabels(names.to_list())
