@@ -255,6 +255,10 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
     if force_mode is not None and approach=='frequentist':
         print("Tests for normality and homoscedacity are ignored for test selection, forcing %s tests" % force_mode)
 
+    # ensure that the index is not named or a MultiIndex
+    # this trips up some internal functions (e.g., Anova (see issue #16))
+    if data.index.name is not None or isinstance(data.index, pd.MultiIndex):
+        data = data.reset_index(drop=True)
 
     # Bonferoni correction for normality tests
     alpha_normality = alpha / len(data.columns)
