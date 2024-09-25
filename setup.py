@@ -9,7 +9,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='autorank',
-    version='1.2.0',
+    version='1.2.1',
     description='Automated ranking of populations in a repeated measures experiment, e.g., to rank different machine '
                 'learning approaches tested on the same data.',
     long_description=long_description,
@@ -17,7 +17,7 @@ setup(
     install_requires=['numpy', 'pandas>=2.0.3', 'statsmodels>=0.14.0', 'scipy>=1.10.1', 'matplotlib>=3.7.2',
                       'baycomp>=1.0.3', 'jinja2>=3.1.2'],
     author='sherbold',
-    author_email='herbold@cs.uni.goettingen.de',
+    author_email='steffen.herbold@uni-passau.de',
     url='https://github.com/sherbold/autorank',
     download_url='https://github.com/sherbold/autorank/zipball/master',
     packages=find_packages(),
