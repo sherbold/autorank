@@ -7,8 +7,8 @@ jobs:
     name: Build and publish (${{ matrix.python }} on ${{ matrix.os }})
     strategy:
       matrix:
-        os: [ubuntu-22.04, windows-latest]
-        python: ['3.8.x', '3.9.x', '3.10.x', '3.11.x']
+        os: [ubuntu-22.04, ubuntu-24.04, windows-latest]
+        python: ['3.8.x', '3.9.x', '3.10.x', '3.11.x', '3.12.x']
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v3
@@ -38,18 +38,18 @@ jobs:
         cp flowchart.png docs/
         pydocmd build
     - name: Publish to codecov
-      if: matrix.os=='ubuntu-22.04' && matrix.python=='3.7.x'
+      if: matrix.os=='ubuntu-24.04' && matrix.python=='3.11.x'
       uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
     - name: Publish documentation of master on gh-pages
-      if: matrix.os=='ubuntu-22.04' && matrix.python=='3.7.x'
+      if: matrix.os=='ubuntu-24.04' && matrix.python=='3.11.x'
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: _build/site
     - name: Publish distribution to PyPI
-      if: startsWith(github.event.ref, 'refs/tags') && matrix.os=='ubuntu-22.04' && matrix.python=='3.7.x'
+      if: startsWith(github.event.ref, 'refs/tags') && matrix.os=='ubuntu-24.04' && matrix.python=='3.11.x'
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.pypi_password }}
