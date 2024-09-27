@@ -8,7 +8,7 @@
     <title>autorank - Autorank</title>
     <link rel="stylesheet" href="../css/theme.css" />
     <link rel="stylesheet" href="../css/theme_extra.css" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
     
       <script>
         // Current page data
@@ -17,12 +17,11 @@
         var mkdocs_page_url = null;
       </script>
     
-    <script src="../js/jquery-3.6.0.min.js" defer></script>
     <!--[if lt IE 9]>
       <script src="../js/html5shiv.min.js"></script>
     <![endif]-->
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
-      <script>hljs.initHighlightingOnLoad();</script> 
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
 </head>
 
 <body class="wy-body-for-nav" role="document">
@@ -34,7 +33,7 @@
           <a href=".." class="icon icon-home"> Autorank
         </a><div role="search">
   <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
-      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
   </form>
 </div>
       </div>
@@ -45,7 +44,7 @@
                 </li>
               </ul>
               <ul class="current">
-                <li class="toctree-l1 current"><a class="reference internal current" href="./">autorank</a>
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">autorank</a>
                 </li>
               </ul>
       </div>
@@ -61,8 +60,8 @@
       <div class="wy-nav-content">
         <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href=".." class="icon icon-home" alt="Docs"></a> &raquo;</li>
-      <li>autorank</li>
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">autorank</li>
     <li class="wy-breadcrumbs-aside">
     </li>
   </ul>
@@ -82,7 +81,8 @@
          rope_mode='effsize',
          nsamples=50000,
          effect_size=None,
-         force_mode=None)
+         force_mode=None,
+         random_state=None)
 </code></pre>
 <p>Automatically compares populations defined in a block-design data frame. Each column in the data frame contains
 the samples for one population. The data must not contain any NaNs. The data must have at least five measurements,
@@ -158,6 +158,10 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
     Can be used to force autorank to use parametric or nonparametric frequentist tests. With 'parametric' you
     automatically get the t-test/repeated measures ANOVA. With 'nonparametric' you automatically get Wilcoxon's
     signed rank test/Friedman test.</p>
+<p>random_state (integer, default=None):
+    Seed for random state. Forwarded to Bayesian signed rank test to enable reproducible sampling and, thereby,
+    reproducible results.
+    <em>(New in Version 1.2.0)</em></p>
 <p><strong>Returns</strong></p>
 <p>A named tuple of type RankResult with the following entries.</p>
 <p>rankdf (DataFrame):
@@ -191,6 +195,11 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
     Number of samples within each population.</p>
 <p>order (string):
     Order of the central tendencies used for ranking.</p>
+<p>sample_matrix (DataFrame):
+    Matrix with SignedRankTest objects from package baycomp. Can be used to do further analysis, e.g. to generate
+    plots using the built-in plot() method of baycomp. For a detailed description of methods and parameters, see
+    the documentation of baycomp: https://baycomp.readthedocs.io/en/latest/classes.html#multiple-data-sets
+    <em>(New in Version 1.2.0)</em></p>
 <p>posterior_matrix (DataFrame):
     Matrix with the pair-wise posterior probabilities estimated with the Bayesian signed ranked test. The matrix
     is a square matrix with the populations sorted by their central tendencies as rows and columns. The value of
@@ -315,14 +324,15 @@ parameter allows the suppression of this exception and forces the creation of th
     
   </span>
 </div>
-    <script>var base_url = '..';</script>
-    <script src="../js/theme_extra.js" defer></script>
-    <script src="../js/theme.js" defer></script>
-      <script src="../search/main.js" defer></script>
-    <script defer>
-        window.onload = function () {
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
             SphinxRtdTheme.Navigation.enable(true);
-        };
+        });
     </script>
 
 </body>

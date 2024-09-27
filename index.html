@@ -8,7 +8,7 @@
     <title>Autorank</title>
     <link rel="stylesheet" href="css/theme.css" />
     <link rel="stylesheet" href="css/theme_extra.css" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
     
       <script>
         // Current page data
@@ -17,12 +17,11 @@
         var mkdocs_page_url = null;
       </script>
     
-    <script src="js/jquery-3.6.0.min.js" defer></script>
     <!--[if lt IE 9]>
       <script src="js/html5shiv.min.js"></script>
     <![endif]-->
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
-      <script>hljs.initHighlightingOnLoad();</script> 
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
 </head>
 
 <body class="wy-body-for-nav" role="document">
@@ -34,14 +33,14 @@
           <a href="." class="icon icon-home"> Autorank
         </a><div role="search">
   <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
-      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
   </form>
 </div>
       </div>
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
-                <li class="toctree-l1 current"><a class="reference internal current" href=".">Home</a>
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">Home</a>
     <ul class="current">
     <li class="toctree-l2"><a class="reference internal" href="#summary">Summary</a>
     </li>
@@ -91,8 +90,8 @@
       <div class="wy-nav-content">
         <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href="." class="icon icon-home" alt="Docs"></a> &raquo;</li>
-      <li>Home</li>
+    <li><a href="." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">Home</li>
     <li class="wy-breadcrumbs-aside">
     </li>
   </ul>
@@ -200,8 +199,10 @@ on the normality of the data.
 <p>For the Bayesian approach, we can use the Bayesian Signed Rank test, which makes no assumptions on the data. The
 critical aspect of this test is the Region Of Practical Equivalence (ROPE) that defines when differences are practically
 irrelevant. If not configured otherwise, autorank determines the ROPE as follows. 
-- For normal data, the ROPE is defined as 0.1<em>d, where d is the effect size (Cohen's d). 
-- For non-normal data, the ROPE is defined as 0.1</em>gamma, where gamma is the effect size (Akinshin's gamma).</p>
+- For normal data, the ROPE is defined as 0.1<em>STD, where STD is the standard deviation. This means the ROPE is the area
+  with an effect size of less than d=0.1 (Cohen's d).
+- For non-normal data, the ROPE is defined as 0.1</em>MAD, where MAD is the mean absolute deviation of the median. This means
+  the ROPE is the area with an effect size of less than gamma=0.1 (Akinshin's gamma)</p>
 <p>This follows <a href="https://doi.org/10.3758/s13423-016-1221-4">Kruschke and Liddell, 2018</a>, who suggest to determine the ROPE
 as half the size of a small effect. Since a small
 effect with Cohen's d is 0.2, this means that a ROPE of 0.1*d translates to a considering all differences that are not
@@ -423,20 +424,21 @@ e.g., independent populations, or paired populations with unequal sample sizes. 
     
   </span>
 </div>
-    <script>var base_url = '.';</script>
-    <script src="js/theme_extra.js" defer></script>
-    <script src="js/theme.js" defer></script>
-      <script src="search/main.js" defer></script>
-    <script defer>
-        window.onload = function () {
+    <script src="js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = ".";</script>
+    <script src="js/theme_extra.js"></script>
+    <script src="js/theme.js"></script>
+      <script src="search/main.js"></script>
+    <script>
+        jQuery(function () {
             SphinxRtdTheme.Navigation.enable(true);
-        };
+        });
     </script>
 
 </body>
 </html>
 
 <!--
-MkDocs version : 1.4.2
-Build Date UTC : 2023-03-15 17:49:55.144953+00:00
+MkDocs version : 1.6.1
+Build Date UTC : 2024-09-27 10:03:39.442157+00:00
 -->
