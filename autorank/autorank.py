@@ -699,7 +699,7 @@ def create_report(result, *, decimal_places=3):
                       "(p=%.*f) that the data is homoscedastic. Thus, we assume that our data is "
                       "homoscedastic." % (decimal_places, result.pval_homogeneity))
             else:
-                print("We applied Bartlett's test for homogeneity and reject the null hypothesis (p=%.*f) that the"
+                print("We applied Bartlett's test for homogeneity and reject the null hypothesis (p=%.*f) that the "
                       "data is homoscedastic. Thus, we assume that our data is "
                       "heteroscedastic." % (decimal_places, result.pval_homogeneity))
 
