@@ -121,7 +121,7 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
         _(New in Version 1.2.0)_
 
     plot_order (list):
-        List with the order of the populations used for ploting, where reasonable (e.g., CI plots). If this is not none, this overrides the order parameter for visualizations. 
+        List with the order of the populations used for plotting, where reasonable (e.g., CI plots). If this is not none, this overrides the order parameter for visualizations.
         _(New in Version 1.3.0)_
 
     # Returns
@@ -383,7 +383,7 @@ def plot_stats(result, *, allow_insignificant=False, ax=None, width=None):
         raise TypeError("result must be of type RankResult and should be the outcome of calling the autorank function.")
 
     if result.omnibus == 'bayes':
-        raise ValueError("ploting results of bayesian analysis not yet supported.")
+        raise ValueError("plotting results of bayesian analysis not yet supported.")
 
     if result.pvalue >= result.alpha and not allow_insignificant:
         raise ValueError(
