@@ -23,7 +23,7 @@ if 'text.usetex' in plt.rcParams and plt.rcParams['text.usetex']:
 
 
 def autorank(data, alpha=0.05, verbose=False, order='descending', approach='frequentist', rope=0.1, rope_mode='effsize',
-             nsamples=50000, effect_size=None, force_mode=None, random_state=None):
+             nsamples=50000, effect_size=None, force_mode=None, random_state=None, plot_order=None):
     """
     Automatically compares populations defined in a block-design data frame. Each column in the data frame contains
     the samples for one population. The data must not contain any NaNs. The data must have at least five measurements,
@@ -116,6 +116,10 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
         reproducible results.
         _(New in Version 1.2.0)_
 
+    plot_order (list):
+        List with the order of the populations used for ploting, where reasonable (e.g., CI plots). If this is not none, this overrides the order parameter for visualizations. 
+        _(New in Version 1.3.0)_
+
     # Returns
 
     A named tuple of type RankResult with the following entries.
@@ -196,6 +200,15 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
     rope_mode (string):
         Mode for calculating the ROPE. Same as input parameter.
         _(New in Version 1.1.0)_
+
+    effect_size (string):
+        Effect size measure that is used for reporting. Same as input parameter.
+
+    force_mode (string):
+        If not None, this is the force mode that was used to select the tests. Either 'parametric' or 'nonparametric'.
+
+    plot_order (list):
+        If not None, this is the fixed order that is used for plotting, where possible. Otherwise None.
     """
 
     # validate inputs
@@ -255,6 +268,18 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
     if force_mode is not None and approach=='frequentist':
         print("Tests for normality and homoscedacity are ignored for test selection, forcing %s tests" % force_mode)
 
+    if plot_order is not None:
+        if not isinstance(plot_order, list):
+            raise TypeError("plot_order must be a list")
+        if len(plot_order) != len(data.columns):
+            raise ValueError("plot_order must have the same length as the number of columns in data")
+        if not all(isinstance(x, str) for x in plot_order):
+            raise TypeError("plot_order must contain only strings")
+        if not all(x in data.columns for x in plot_order):
+            raise ValueError("plot_order must contain only columns from data")
+        if len(set(plot_order)) != len(plot_order):
+            raise ValueError("plot_order must not contain duplicates (not supported for data frames with duplicate column names)")
+
     # ensure that the index is not named or a MultiIndex
     # this trips up some internal functions (e.g., Anova (see issue #16))
     if data.index.name is not None or isinstance(data.index, pd.MultiIndex):
@@ -304,14 +329,14 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
         pvals_shapiro = [pvals_shapiro[pos] for pos in res.reorder_pos]
         return RankResult(res.rankdf, res.pvalue, res.cd, res.omnibus, res.posthoc, all_normal, pvals_shapiro,
                           var_equal, pval_homogeneity, homogeneity_test, alpha, alpha_normality, len(data), None, None,
-                          None, None, None, res.effect_size, force_mode)
+                          None, None, None, res.effect_size, force_mode, plot_order)
     elif approach == 'bayesian':
         res = rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples, effect_size, random_state)
         # need to reorder pvals here (see issue #7)
         pvals_shapiro = [pvals_shapiro[pos] for pos in res.reorder_pos]
         return RankResult(res.rankdf, None, None, 'bayes', 'bayes', all_normal, pvals_shapiro, None, None, None, alpha,
                           alpha_normality, len(data), res.sample_matrix, res.posterior_matrix, res.decision_matrix, rope,
-                          rope_mode, res.effect_size, force_mode)
+                          rope_mode, res.effect_size, force_mode, plot_order)
 
 
 def plot_stats(result, *, allow_insignificant=False, ax=None, width=None):

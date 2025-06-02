@@ -18,7 +18,7 @@ class RankResult(namedtuple('RankResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 
                                            'pvals_shapiro', 'homoscedastic', 'pval_homogeneity', 'homogeneity_test',
                                            'alpha', 'alpha_normality', 'num_samples', 'sample_matrix',
                                            'posterior_matrix', 'decision_matrix', 'rope', 'rope_mode', 'effect_size',
-                                           'force_mode'))):
+                                           'force_mode', 'plot_order'))):
     __slots__ = ()
 
     def __str__(self):
@@ -560,10 +560,18 @@ def ci_plot(result, reverse, ax, width):
     """
     Uses error bars to create a plot of the confidence intervals of the mean value.
     """
-    if reverse:
-        sorted_df = result.rankdf.iloc[::-1]
+    if result.plot_order is not None:
+        # if the result has a plot order, use it
+        ordered_df = result.rankdf.loc[result.plot_order]
     else:
-        sorted_df = result.rankdf
+        # otherwise, use the default order
+        ordered_df = result.rankdf
+
+    # we usually revert, because the plot has the first list item at the bottom
+    if reverse:
+        sorted_df = ordered_df.iloc[::-1]
+    else:
+        sorted_df = ordered_df
     sorted_means = sorted_df['mean']
     ci_lower = sorted_df.ci_lower
     ci_upper = sorted_df.ci_upper

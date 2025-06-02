@@ -583,12 +583,28 @@ class TestAutorank(unittest.TestCase):
         self.assertRaises(ValueError, autorank,
                           data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]]),
                           force_mode="foo")
+        print(pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]], columns=['A', 'B']))
+        self.assertRaises(TypeError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]], columns=['A', 'B']),
+                          plot_order="foo")
+        self.assertRaises(ValueError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]], columns=['A', 'B']),
+                          plot_order=["A"])
+        self.assertRaises(TypeError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]], columns=['A', 'B']),
+                          plot_order=["A", 1])
+        self.assertRaises(ValueError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]], columns=['A', 'B']),
+                          plot_order=["A", "C"])
+        self.assertRaises(ValueError, autorank,
+                          data=pd.DataFrame(data=[[1, 2], [3, 4], [5, 6], [7, 8], [9, 0], [1, 2]], columns=['A', 'B']),
+                          plot_order=["A", "A"])
 
     def test_plot_stats_invalid(self):
         self.assertRaises(TypeError, plot_stats,
                           result="foo")
         res = RankResult(None, None, None, 'bayes', None, None, None, None, None, None, None, None, None, None, None,
-                         None, None, None, None, None)
+                         None, None, None, None, None, None)
         self.assertRaises(ValueError, plot_stats,
                           result=res)
 
@@ -860,3 +876,35 @@ class TestAutorank(unittest.TestCase):
         table = pd.pivot_table(source, values="v", index="k2", columns="k1")
 
         autorank(table, alpha=0.05, verbose=True)
+
+    def test_plot_plot_order(self):
+        # test for new function that allows sorting within CI plots (see issue #39)
+        std = 0.2
+        means = [0.2, 0.3, 0.5, 0.55, 0.6, 0.6, 0.9]
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size)
+        autorank(data, 0.05, self.verbose, order='ascending')  # check if call works with ascending
+        plot_order = ['pop_0', 'pop_2', 'pop_4', 'pop_6', 'pop_5', 'pop_3', 'pop_1']
+        res = autorank(data, 0.05, self.verbose, plot_order=plot_order)
+        self.assertTrue(res.all_normal)
+        self.assertTrue(res.homoscedastic)
+        self.assertEqual(res.omnibus, 'anova')
+        self.assertEqual(res.posthoc, 'tukeyhsd')
+        self.assertTrue(res.pvalue < res.alpha)
+        plot_stats(res)
+        plt.draw()
+        create_report(res)
+        print("----BEGIN LATEX----")
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
+        print("----END LATEX----")
+        print()
+        print("BEGIN BAYESIAN ANALYSIS")
+        print()
+        res = autorank(data, alpha=0.05, nsamples=100, verbose=self.verbose, approach='bayesian')
+        self.assertTrue(res.all_normal)
+        self.assertEqual(res.omnibus, 'bayes')
+        create_report(res)
+        print("----BEGIN LATEX----")
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
+        print("----END LATEX----")
