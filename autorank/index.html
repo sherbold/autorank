@@ -277,7 +277,8 @@ parameter allows the suppression of this exception and forces the creation of th
 <p>Axis with the plot. None if no plot was generated.</p>
 <h1 id="autorank.latex_table">latex_table</h1>
 
-<pre><code class="language-python">latex_table(result, *, decimal_places, label)
+<pre><code class="language-python">latex_table(result, *, decimal_places, label, effect_size_relation,
+            posterior_relation)
 </code></pre>
 <p>Creates a latex table from the results dataframe of the statistical analysis.</p>
 <p><strong>Parameters</strong></p>
@@ -287,6 +288,18 @@ parameter allows the suppression of this exception and forces the creation of th
     Number of decimal places that are used for the report.</p>
 <p>label (str, default=None):
     Label of the table. Defaults to 'tbl:stat_results' if None.</p>
+<p>effect_size_relation (str, default="best"):
+    Specifies which effect size relation is used in the table. Can be "best", "above", or both.
+    If "best", the effect size is compute in relation to the best-ranked value.
+    If "above", the effect size is computed in relation to the value above in the row above.
+    With "both", both the best and the above are included in the table.
+    <em>(New in Version 1.3.0)</em></p>
+<p>posterior_relation (str, default="best"):
+    Specifies which posterior relation is used in the table. Can be "best", "above", or both.
+    If "best", the posterior is computed in relation to the best-ranked value.
+    If "above", the posterior is computed in relation to the value above in the row above.
+    With "both", both the best and the above are included in the table.
+    <em>(New in Version 1.3.0)</em></p>
 <h1 id="autorank.latex_report">latex_report</h1>
 
 <pre><code class="language-python">latex_report(result, *, decimal_places, prefix, generate_plots,
