@@ -109,7 +109,10 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
     force_mode (string, default=None):
         Can be used to force autorank to use parametric or nonparametric frequentist tests. With 'parametric' you
         automatically get the t-test/repeated measures ANOVA. With 'nonparametric' you automatically get Wilcoxon's
-        signed rank test/Friedman test.
+        signed rank test/Friedman test. In case of Bayesian statistics, this parameter is used to override the automatic
+        selection of the effect size measure, such that 'parametric' uses Cohen's d and 'nonparametric' uses Akinshin's,
+        regardless of the normality of the data. If this parameter is None, the automatic selection is used.
+        _(Support for Bayesian statistics added in Version 1.3.0)_
 
     random_state (integer, default=None):
         Seed for random state. Forwarded to Bayesian signed rank test to enable reproducible sampling and, thereby,
@@ -332,7 +335,7 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
                           var_equal, pval_homogeneity, homogeneity_test, alpha, alpha_normality, len(data), None, None,
                           None, None, None, res.effect_size, force_mode, plot_order)
     elif approach == 'bayesian':
-        res = rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples, effect_size, random_state)
+        res = rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples, effect_size, random_state, force_mode)
         # need to reorder pvals here (see issue #7)
         pvals_shapiro = [pvals_shapiro[pos] for pos in res.reorder_pos]
         return RankResult(res.rankdf, None, None, 'bayes', 'bayes', all_normal, pvals_shapiro, None, None, None, alpha,
@@ -487,7 +490,7 @@ def create_report(result, *, decimal_places=3):
               "normal." % (population_term, create_population_string(not_normal, pop_pvals=pvals)))
 
     if result.omnibus == 'bayes':
-        if result.all_normal:
+        if (result.force_mode is not None and result.force_mode=='parametric') or (result.force_mode is None and result.all_normal):
             central_tendency = 'mean value'
             central_tendency_long = 'mean value (M)'
             variability = 'standard deviation (SD)'

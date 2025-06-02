@@ -304,14 +304,14 @@ def rank_multiple_nonparametric(data, alpha, verbose, all_normal, order, effect_
     return _ComparisonResult(rankdf, pval, cd, 'friedman', 'nemenyi', effsize_method, reorder_pos)
 
 
-def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples, effect_size, random_state):
+def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples, effect_size, random_state, force_mode):
     # TODO check if some outputs for the verbose mode would be helpful
-    if all_normal:
+    if (force_mode is not None and force_mode == 'parametric') or (force_mode is None and all_normal):
         order_column = 'mean'
-    else:
+    else: # either with force_mode or not all_normal
         order_column = 'median'
     result_df, effsize_method, reorder_pos = _create_result_df_skeleton(data, alpha/len(data.columns), all_normal,
-                                                                        order, order_column, effect_size)
+                                                                        order, order_column, effect_size, force_mode)
     result_df = result_df.drop('meanrank', axis='columns')
     result_df['p_equal'] = np.nan
     result_df['p_smaller'] = np.nan
@@ -327,9 +327,11 @@ def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsam
         for j in range(i+1, len(reordered_data.columns)):
             if rope_mode == 'effsize':
                 # half the size of a small effect size following Kruschke (2018)
-                if all_normal:
+                if (force_mode is not None and force_mode == 'parametric') or (force_mode is None and all_normal):
+                    # use Cohen's d
                     cur_rope = rope*_pooled_std(reordered_data.iloc[:, i], reordered_data.iloc[:, j])
-                else:
+                else: # either with force_mode or not all_normal
+                    # use Akinshin's gamma
                     cur_rope = rope*_pooled_mad(reordered_data.iloc[:, i], reordered_data.iloc[:, j])
             elif rope_mode == 'absolute':
                 cur_rope = rope

@@ -459,6 +459,8 @@ class TestAutorank(unittest.TestCase):
         self.assertTrue(res.homoscedastic)
         self.assertEqual(res.omnibus, 'ttest')
         create_report(res)
+        res = autorank(data, 0.05, self.verbose, force_mode='parametric', approach='bayesian')
+        create_report(res)
 
     def test_autorank_force_mode_nonparametric_two(self):
         std = 0.15
@@ -472,6 +474,8 @@ class TestAutorank(unittest.TestCase):
         self.assertEqual(res.omnibus, 'wilcoxon')
         plot_stats(res)
         plt.draw()
+        create_report(res)
+        res = autorank(data, 0.05, self.verbose, force_mode='nonparametric', approach='bayesian')
         create_report(res)
 
     def test_autorank_force_mode_parametric_multiple_heteroscedastic(self):
@@ -488,6 +492,8 @@ class TestAutorank(unittest.TestCase):
         plot_stats(res)
         plt.draw()
         create_report(res)
+        res = autorank(data, 0.05, self.verbose, force_mode='parametric', approach='bayesian')
+        create_report(res)
 
     def test_autorank_force_mode_parametric_multiple_nonnormal(self):
         std = 0.3
@@ -503,6 +509,8 @@ class TestAutorank(unittest.TestCase):
         plot_stats(res)
         plt.draw()
         create_report(res)
+        res = autorank(data, 0.05, self.verbose, force_mode='parametric', approach='bayesian')
+        create_report(res)
 
     def test_autorank_force_mode_nonparametric_multiple(self):
         std = 0.2
@@ -517,6 +525,8 @@ class TestAutorank(unittest.TestCase):
         self.assertEqual(res.posthoc, 'nemenyi')
         plot_stats(res)
         plt.draw()
+        create_report(res)
+        res = autorank(data, 0.05, self.verbose, force_mode='nonparametric', approach='bayesian')
         create_report(res)
 
     def test_autorank_invalid(self):
