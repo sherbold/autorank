@@ -82,7 +82,8 @@
          nsamples=50000,
          effect_size=None,
          force_mode=None,
-         random_state=None)
+         random_state=None,
+         plot_order=None)
 </code></pre>
 <p>Automatically compares populations defined in a block-design data frame. Each column in the data frame contains
 the samples for one population. The data must not contain any NaNs. The data must have at least five measurements,
@@ -162,6 +163,9 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
     Seed for random state. Forwarded to Bayesian signed rank test to enable reproducible sampling and, thereby,
     reproducible results.
     <em>(New in Version 1.2.0)</em></p>
+<p>plot_order (list):
+    List with the order of the populations used for ploting, where reasonable (e.g., CI plots). If this is not none, this overrides the order parameter for visualizations.
+    <em>(New in Version 1.3.0)</em></p>
 <p><strong>Returns</strong></p>
 <p>A named tuple of type RankResult with the following entries.</p>
 <p>rankdf (DataFrame):
@@ -222,6 +226,12 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
 <p>rope_mode (string):
     Mode for calculating the ROPE. Same as input parameter.
     <em>(New in Version 1.1.0)</em></p>
+<p>effect_size (string):
+    Effect size measure that is used for reporting. Same as input parameter.</p>
+<p>force_mode (string):
+    If not None, this is the force mode that was used to select the tests. Either 'parametric' or 'nonparametric'.</p>
+<p>plot_order (list):
+    If not None, this is the fixed order that is used for plotting, where possible. Otherwise None.</p>
 <h1 id="autorank.create_report">create_report</h1>
 
 <pre><code class="language-python">create_report(result, *, decimal_places)
