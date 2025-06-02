@@ -158,7 +158,10 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
 <p>force_mode (string, default=None):
     Can be used to force autorank to use parametric or nonparametric frequentist tests. With 'parametric' you
     automatically get the t-test/repeated measures ANOVA. With 'nonparametric' you automatically get Wilcoxon's
-    signed rank test/Friedman test.</p>
+    signed rank test/Friedman test. In case of Bayesian statistics, this parameter is used to override the automatic
+    selection of the effect size measure, such that 'parametric' uses Cohen's d and 'nonparametric' uses Akinshin's,
+    regardless of the normality of the data. If this parameter is None, the automatic selection is used.
+    <em>(Support for Bayesian statistics added in Version 1.3.0)</em></p>
 <p>random_state (integer, default=None):
     Seed for random state. Forwarded to Bayesian signed rank test to enable reproducible sampling and, thereby,
     reproducible results.
@@ -231,7 +234,8 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
 <p>force_mode (string):
     If not None, this is the force mode that was used to select the tests. Either 'parametric' or 'nonparametric'.</p>
 <p>plot_order (list):
-    If not None, this is the fixed order that is used for plotting, where possible. Otherwise None.</p>
+    If not None, this is the fixed order that is used for plotting, where possible. Otherwise None.
+    <em>(New in Version 1.3.0)</em></p>
 <h1 id="autorank.create_report">create_report</h1>
 
 <pre><code class="language-python">create_report(result, *, decimal_places)
