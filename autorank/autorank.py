@@ -260,6 +260,13 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
     if data.index.name is not None or isinstance(data.index, pd.MultiIndex):
         data = data.reset_index(drop=True)
 
+    # ensure that index and columns are not named
+    # this also trips up some internal functions (e.g., Anova (see issue #37))
+    if data.index.name is not None:
+        data = data.rename_axis(None, axis=0)
+    if data.columns.name is not None:
+        data = data.rename_axis(None, axis=1)
+
     # Bonferoni correction for normality tests
     alpha_normality = alpha / len(data.columns)
     all_normal, pvals_shapiro = test_normality(data, alpha_normality, verbose)

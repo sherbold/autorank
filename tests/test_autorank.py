@@ -846,3 +846,17 @@ class TestAutorank(unittest.TestCase):
         })
         data = data.set_index(["index1", "index2"])
         autorank(data, 0.05, True)
+
+    def test_pivot_tables(self):
+        # test to reproduce issue #37
+        # the underlying issue is that the index and columns are named
+        d = {
+            "k1": ["a", "a", "a", "a", "a", "a", "b", "b", "b", "b", "b", "b", "c", "c", "c", "c", "c", "c"],
+            "k2": ["1", "2", "3", "4", "5", "6", "1", "2", "3", "4", "5", "6", "1", "2", "3", "4", "5", "6"],
+            "v": [3.6780, 2.2840, 3.3200, 4.3570, 3.1290, 3.4530,
+                5.0730, 6.1410, 7.0870, 6.8470, 7.2570, 5.4080,
+                7.3680, 10.030, 8.2270, 8.6580, 9.4650, 8.6650]}
+        source = pd.DataFrame(data=d)
+        table = pd.pivot_table(source, values="v", index="k2", columns="k1")
+
+        autorank(table, alpha=0.05, verbose=True)
