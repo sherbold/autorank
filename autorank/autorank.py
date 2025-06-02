@@ -209,6 +209,7 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
 
     plot_order (list):
         If not None, this is the fixed order that is used for plotting, where possible. Otherwise None.
+        _(New in Version 1.3.0)_
     """
 
     # validate inputs
