@@ -772,7 +772,7 @@ def create_report(result, *, decimal_places=3):
             raise ValueError('Unknown omnibus test for difference in the central tendency: %s' % result.omnibus)
 
 
-def latex_table(result, *, decimal_places=3, label=None, effect_size_relation="best"):
+def latex_table(result, *, decimal_places=3, label=None, effect_size_relation="best", posterior_relation="best"):
     """
     Creates a latex table from the results dataframe of the statistical analysis.
 
@@ -792,10 +792,22 @@ def latex_table(result, *, decimal_places=3, label=None, effect_size_relation="b
         If "best", the effect size is compute in relation to the best-ranked value.
         If "above", the effect size is computed in relation to the value above in the row above. 
         With "both", both the best and the above are included in the table.
+        _(New in Version 1.3.0)_
+
+    posterior_relation (str, default="best"):
+        Specifies which posterior relation is used in the table. Can be "best", "above", or both.
+        If "best", the posterior is computed in relation to the best-ranked value.
+        If "above", the posterior is computed in relation to the value above in the row above.
+        With "both", both the best and the above are included in the table.
+        _(New in Version 1.3.0)_
 
     """
+    if not isinstance(result, RankResult):
+        raise TypeError("result must be of type RankResult and should be the outcome of calling the autorank function.")
     if effect_size_relation not in {'best', 'above', 'both'}:
         raise ValueError("effect_size_relation must be one of 'best', 'above', or 'both'.")
+    if posterior_relation not in {'best', 'above', 'both'}:
+        raise ValueError("posterior_relation must be one of 'best', 'above', or 'both'.")
 
     if label is None:
         label = 'tbl:stat_results'
@@ -808,6 +820,9 @@ def latex_table(result, *, decimal_places=3, label=None, effect_size_relation="b
         columns.remove('magnitude')
     if result.posthoc == 'tukeyhsd':
         columns.remove('meanrank')
+    if result.omnibus == 'bayes':
+        table_df.at[table_df.index[0], 'decision'] = '-'
+        table_df.at[table_df.index[0], 'decision_above'] = '-'
     columns.insert(columns.index('ci_lower'), 'CI')
     columns.remove('ci_lower')
     columns.remove('ci_upper')
@@ -856,20 +871,42 @@ def latex_table(result, *, decimal_places=3, label=None, effect_size_relation="b
     rename_map['meanrank'] = 'MR'
     rename_map['mean'] = 'M'
     rename_map['std'] = 'SD'
-    rename_map['decision'] = 'Decision'
+    if posterior_relation == 'best':
+        rename_map['decision'] = 'Decision'
+        if 'decision_above' in columns:
+            columns.remove('decision_above')
+            columns.remove('p_equal_above')
+            columns.remove('p_smaller_above')
+    elif posterior_relation == 'above':
+        rename_map['decision_above'] = 'Decision'
+        if 'decision' in columns:
+            columns.remove('decision')
+            columns.remove('p_equal')
+            columns.remove('p_smaller')
+    elif posterior_relation == 'both':
+        rename_map['decision'] = 'Decision (best)'
+        if 'decision_above' in columns:
+            rename_map['decision_above'] = 'Decision (above)'
     format_string = '[{0[ci_lower]:.' + str(decimal_places) + 'f}, {0[ci_upper]:.' + str(decimal_places) + 'f}]'
     table_df['CI'] = table_df.agg(format_string.format, axis=1)
     table_df = table_df[columns]
-    if result.omnibus == 'bayes':
-        table_df.at[table_df.index[0], 'decision'] = '-'
     table_df = table_df.rename(rename_map, axis='columns')
 
     float_format = lambda x: ("{:0." + str(decimal_places) + "f}").format(x) if not np.isnan(x) else '-'
     table_string = table_df.to_latex(float_format=float_format, na_rep='-').strip()
     table_string = table_string.replace('D-E-L-T-A', r'$\delta$')
     table_string = table_string.replace('G-A-M-M-A', r'$\gamma$')
-    table_string = table_string.replace(r'p_equal', r'$P(\textit{equal})$')
-    table_string = table_string.replace(r'p_smaller', r'$P(\textit{smaller})$')
+    if posterior_relation == 'best':
+        table_string = table_string.replace(r'p_equal', r'$P(\textit{equal})$')
+        table_string = table_string.replace(r'p_smaller', r'$P(\textit{smaller})$')
+    elif posterior_relation == 'above':
+        table_string = table_string.replace(r'p_equal_above', r'$P(\textit{equal})$')
+        table_string = table_string.replace(r'p_smaller_above', r'$P(\textit{smaller})$')
+    elif posterior_relation == 'both':
+        table_string = table_string.replace(r'p_equal_above', r'$P(\textit{equal})$ (above)')
+        table_string = table_string.replace(r'p_smaller_above', r'$P(\textit{smaller})$ (above)')
+        table_string = table_string.replace(r'p_equal', r'$P(\textit{equal})$ (best)')
+        table_string = table_string.replace(r'p_smaller', r'$P(\textit{smaller})$ (best)')
     print(r"\begin{table}[h]")
     print(r"\centering")
     print(table_string)

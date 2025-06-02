@@ -625,6 +625,16 @@ class TestAutorank(unittest.TestCase):
     def test_latex_report_invalid(self):
         self.assertRaises(TypeError, latex_report,
                           result="foo")
+        
+    def test_latex_table_invalid(self):
+        self.assertRaises(TypeError, latex_table,
+                          result="foo")
+        res = RankResult(None, None, None, 'bayes', None, None, None, None, None, None, None, None, None, None, None,
+                         None, None, None, None, None, None)
+        self.assertRaises(ValueError, latex_table,
+                          result=res, effect_size_relation='foo')
+        self.assertRaises(ValueError, latex_table,
+                          result=res, posterior_relation='foo')
 
     def test_realdata(self):
         data = pd.DataFrame().from_dict(
@@ -917,4 +927,30 @@ class TestAutorank(unittest.TestCase):
         create_report(res)
         print("----BEGIN LATEX----")
         latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
+        print("----END LATEX----")
+
+    def test_effect_size_relations(self):
+        std = 0.3
+        means = [0.2, 0.3, 0.5, 0.8, 0.85, 0.9, 0.1]
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
+        res = autorank(data, 0.05, False)
+        print("----BEGIN LATEX -----")
+        latex_table(res, effect_size_relation='best')
+        latex_table(res, effect_size_relation='above')
+        latex_table(res, effect_size_relation='both')
+        print("----END LATEX----")
+
+    def test_posterior_relations(self):
+        std = 0.3
+        means = [0.2, 0.3, 0.5, 0.8, 0.85, 0.9, 0.1]
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
+        res = autorank(data, alpha=0.05, nsamples=100, verbose=False, approach='bayesian')
+        #print("----BEGIN LATEX----")
+        latex_table(res, posterior_relation='best')
+        latex_table(res, posterior_relation='above')
+        latex_table(res, posterior_relation='both')
         print("----END LATEX----")

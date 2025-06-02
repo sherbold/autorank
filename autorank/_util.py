@@ -316,6 +316,9 @@ def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsam
     result_df['p_equal'] = np.nan
     result_df['p_smaller'] = np.nan
     result_df['decision'] = 'NA'
+    result_df['p_equal_above'] = np.nan
+    result_df['p_smaller_above'] = np.nan
+
 
     # re-order columns to have the same order as results
     reordered_data = data.reindex(result_df.index, axis=1)
@@ -349,6 +352,10 @@ def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsam
                 result_df.loc[result_df.index[j], 'p_equal'] = posterior_probabilities[1]
                 result_df.loc[result_df.index[j], 'p_smaller'] = posterior_probabilities[0]
                 result_df.loc[result_df.index[j], 'decision'] = _posterior_decision(posterior_probabilities, alpha)
+    for i in range(1, len(data.columns)):
+        result_df.loc[result_df.index[i], 'p_equal_above'] = posterior_matrix.iloc[i-1, i][1]
+        result_df.loc[result_df.index[i], 'p_smaller_above'] = posterior_matrix.iloc[i-1, i][0]
+        result_df.loc[result_df.index[i], 'decision_above'] = _posterior_decision(posterior_matrix.iloc[i-1, i], alpha)
 
     return _BayesResult(result_df, sample_matrix, posterior_matrix, decision_matrix, effsize_method, reorder_pos)
 
