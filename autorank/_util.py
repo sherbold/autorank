@@ -376,12 +376,12 @@ def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='mea
     meanranks = rankmat.mean()
     if (force_mode is not None and force_mode=='parametric') or (force_mode is None and all_normal):
         rankdf = pd.DataFrame(index=meanranks.index,
-                              columns=['meanrank', 'mean', 'std', 'ci_lower', 'ci_upper', 'effect_size', 'magnitude'])
+                              columns=['meanrank', 'mean', 'std', 'ci_lower', 'ci_upper', 'effect_size', 'magnitude', 'effect_size_above', 'magnitude_above'])
         rankdf['mean'] = data.mean().reindex(meanranks.index)
         rankdf['std'] = data.std().reindex(meanranks.index)
     else:
         rankdf = pd.DataFrame(index=meanranks.index,
-                              columns=['meanrank', 'median', 'mad', 'ci_lower', 'ci_upper', 'effect_size', 'magnitude'])
+                              columns=['meanrank', 'median', 'mad', 'ci_lower', 'ci_upper', 'effect_size', 'magnitude', 'effect_size_above', 'magnitude_above'])
         rankdf['median'] = data.median().reindex(meanranks.index)
         for population in rankdf.index:
             rankdf.at[population, 'mad'] = stats.median_abs_deviation(data.loc[:, population])
@@ -392,22 +392,37 @@ def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='mea
     reorder_pos = [reorder_index.get_loc(old_index) for old_index in rankdf.index]
     rankdf = rankdf.reindex(reorder_index)
 
+    population_above = None
     for population in rankdf.index:
         if effsize_method == 'cohen_d':
             effsize = _cohen_d(data.loc[:, rankdf.index[0]], data.loc[:, population])
+            if population_above is not None:
+                effsize_above = _cohen_d(data.loc[:, population_above], data.loc[:, population])
         elif effsize_method == 'cliff_delta':
             effsize = _cliffs_delta(data.loc[:, rankdf.index[0]], data.loc[:, population])
+            if population_above is not None:
+                effsize_above = _cliffs_delta(data.loc[:, population_above], data.loc[:, population])
         elif effsize_method == 'akinshin_gamma':
             effsize = _akinshin_gamma(data.loc[:, rankdf.index[0]], data.loc[:, population])
+            if population_above is not None:
+                effsize_above = _akinshin_gamma(data.loc[:, population_above], data.loc[:, population])
         else:
             raise ValueError("Unknown effsize method, this should not be possible.")
+        if population_above is None:
+            effsize_above = 0.0
         rankdf.at[population, 'effect_size'] = effsize
         rankdf.at[population, 'magnitude'] = _effect_level(effsize, effsize_method)
+        rankdf.at[population, 'effect_size_above'] = effsize_above
+        rankdf.at[population, 'magnitude_above'] = _effect_level(effsize_above, effsize_method)
+
         if alpha is not None:
             lower, upper = _confidence_interval(data.loc[:, population], alpha / len(data.columns),
                                                 is_normal=all_normal)
             rankdf.at[population, 'ci_lower'] = lower
             rankdf.at[population, 'ci_upper'] = upper
+        population_above = population
+
+    print(rankdf)
 
     return rankdf, effsize_method, reorder_pos
 

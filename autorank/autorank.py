@@ -772,7 +772,7 @@ def create_report(result, *, decimal_places=3):
             raise ValueError('Unknown omnibus test for difference in the central tendency: %s' % result.omnibus)
 
 
-def latex_table(result, *, decimal_places=3, label=None):
+def latex_table(result, *, decimal_places=3, label=None, effect_size_relation="best"):
     """
     Creates a latex table from the results dataframe of the statistical analysis.
 
@@ -786,7 +786,17 @@ def latex_table(result, *, decimal_places=3, label=None):
 
     label (str, default=None):
         Label of the table. Defaults to 'tbl:stat_results' if None.
+
+    effect_size_relation (str, default="best"):
+        Specifies which effect size relation is used in the table. Can be "best", "above", or both. 
+        If "best", the effect size is compute in relation to the best-ranked value.
+        If "above", the effect size is computed in relation to the value above in the row above. 
+        With "both", both the best and the above are included in the table.
+
     """
+    if effect_size_relation not in {'best', 'above', 'both'}:
+        raise ValueError("effect_size_relation must be one of 'best', 'above', or 'both'.")
+
     if label is None:
         label = 'tbl:stat_results'
 
@@ -803,12 +813,44 @@ def latex_table(result, *, decimal_places=3, label=None):
     columns.remove('ci_upper')
     rename_map = {}
     if result.effect_size == 'cohen_d':
-        rename_map['effect_size'] = '$d$'
+        if effect_size_relation == 'best':
+            rename_map['effect_size'] = '$d$'
+            columns.remove('effect_size_above')
+        elif effect_size_relation == 'above':
+            rename_map['effect_size_above'] = '$d$'
+            columns.remove('effect_size')
+        elif effect_size_relation == 'both':
+            rename_map['effect_size'] = '$d$ (best)'
+            rename_map['effect_size_above'] = '$d$ (above)'
     elif result.effect_size == 'cliff_delta':
-        rename_map['effect_size'] = r'D-E-L-T-A'
+        if effect_size_relation == 'best':
+            rename_map['effect_size'] = r'D-E-L-T-A'
+            columns.remove('effect_size_above')
+        elif effect_size_relation == 'above':
+            rename_map['effect_size_above'] = r'D-E-L-T-A'
+            columns.remove('effect_size')
+        elif effect_size_relation == 'both':
+            rename_map['effect_size'] = r'D-E-L-T-A (best)'
+            rename_map['effect_size_above'] = r'D-E-L-T-A (above)'
     elif result.effect_size == 'akinshin_gamma':
-        rename_map['effect_size'] = r'G-A-M-M-A'
-    rename_map['magnitude'] = 'Magnitude'
+        if effect_size_relation == 'best':
+            rename_map['effect_size'] = r'G-A-M-M-A'
+            columns.remove('effect_size_above')
+        elif effect_size_relation == 'above':
+            rename_map['effect_size_above'] = r'G-A-M-M-A'
+            columns.remove('effect_size')
+        elif effect_size_relation == 'both':
+            rename_map['effect_size'] = r'G-A-M-M-A (best)'
+            rename_map['effect_size_above'] = r'G-A-M-M-A (above)'
+    if effect_size_relation == 'best':
+        rename_map['magnitude'] = 'Magnitude'
+        columns.remove('magnitude_above')
+    elif effect_size_relation == 'above':
+        rename_map['magnitude_above'] = 'Magnitude'
+        columns.remove('magnitude')
+    elif effect_size_relation == 'both':
+        rename_map['magnitude'] = 'Magnitude (best)'
+        rename_map['magnitude_above'] = 'Magnitude (above)'
     rename_map['mad'] = 'MAD'
     rename_map['median'] = 'MED'
     rename_map['meanrank'] = 'MR'
