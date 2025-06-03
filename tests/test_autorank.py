@@ -954,3 +954,40 @@ class TestAutorank(unittest.TestCase):
         latex_table(res, posterior_relation='above')
         latex_table(res, posterior_relation='both')
         print("----END LATEX----")
+
+    def test_posterior_plots(self):
+        std = 0.3
+        means = [0.2, 0.3, 0.5, 0.8, 0.85, 0.9, 0.1]
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
+        res = autorank(data, alpha=0.05, nsamples=100, verbose=False, approach='bayesian')
+        plot_posterior_maps(res)
+        plt.draw()
+        plt.show()
+
+    def test_posterior_plots_invalid(self):
+        self.assertRaises(TypeError, plot_posterior_maps,
+                          result="foo")
+        res = RankResult(None, None, None, 'bayes', None, None, None, None, None, None, None, None, None, None, None,
+                         None, None, None, None, None, None)
+        res_not_bayes = RankResult(None, None, None, 'foo', None, None, None, None, None, None, None, None, None, None, None, None,
+                         None, None, None, None, None)
+        self.assertRaises(ValueError, plot_posterior_maps,
+                          result=res_not_bayes)
+        self.assertRaises(TypeError, plot_posterior_maps,
+                          result=res, width='foo')
+        self.assertRaises(ValueError, plot_posterior_maps,
+                          result=res, width=0.0)
+        self.assertRaises(TypeError, plot_posterior_maps,
+                          result=res, cmaps='foo')
+        self.assertRaises(ValueError, plot_posterior_maps,
+                          result=res, cmaps=['foo'])
+        self.assertRaises(TypeError, plot_posterior_maps,
+                          result=res, annot_colors='foo')
+        self.assertRaises(ValueError, plot_posterior_maps,
+                          result=res, annot_colors=['foo'])
+        self.assertRaises(TypeError, plot_posterior_maps,
+                          result=res, axes='foo')
+        self.assertRaises(ValueError, plot_posterior_maps,
+                          result=res, axes=['foo'])

@@ -1,6 +1,7 @@
 import math
 import numpy as np
 import pandas as pd
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from scipy import stats
@@ -11,7 +12,7 @@ from baycomp import SignedRankTest
 from collections import namedtuple
 
 __all__ = ['rank_two', 'rank_multiple_normal_homoscedastic', 'rank_bayesian', 'RankResult',
-           'rank_multiple_nonparametric', 'cd_diagram', 'get_sorted_rank_groups', 'ci_plot', 'test_normality']
+           'rank_multiple_nonparametric', 'cd_diagram', 'get_sorted_rank_groups', 'ci_plot', 'test_normality', 'posterior_maps']
 
 
 class RankResult(namedtuple('RankResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc', 'all_normal',
@@ -632,3 +633,165 @@ def test_normality(data, alpha, verbose):
             print("Fail to reject null hypothesis that data is normal for column %s (p=%f>=%f)" % (
                 column, pval_shapiro, alpha))
     return all_normal, pvals_shapiro
+
+
+def _heatmap(data, row_labels, col_labels, ax,
+            cbar_kw=None, cbarlabel="", **kwargs):
+    """
+    Create a heatmap from a numpy array and two lists of labels.
+
+    Adopted from the scikit-learn documentation:
+    https://matplotlib.org/stable/gallery/images_contours_and_fields/image_annotated_heatmap.html
+    """
+    if cbar_kw is None:
+        cbar_kw = {}
+
+    # Plot the heatmap
+    im = ax.imshow(data, **kwargs)
+
+    # Create colorbar
+    cbar = ax.figure.colorbar(im, ax=ax, **cbar_kw)
+    cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom")
+
+    # Show all ticks and label them with the respective list entries.
+    ax.set_xticks(range(data.shape[1]), labels=col_labels,
+                  rotation=-30, ha="right", rotation_mode="anchor")
+    ax.set_yticks(range(data.shape[0]), labels=row_labels)
+
+    # Let the horizontal axes labeling appear on top.
+    ax.tick_params(top=True, bottom=False,
+                   labeltop=True, labelbottom=False)
+
+    # Turn spines off and create white grid.
+    ax.spines[:].set_visible(False)
+    ax.set_xticks(np.arange(data.shape[1]+1)-.5, minor=True)
+    ax.set_yticks(np.arange(data.shape[0]+1)-.5, minor=True)
+    ax.grid(which="minor", color="w", linestyle='-')#, linewidth=4)
+    ax.tick_params(which="minor", bottom=False, left=False)
+    return im
+
+
+def _annotate_heatmap(im, data=None, valfmt="{x:.2f}",
+                     textcolors=("black", "white"),
+                     vrange=None, **textkw):
+    """
+    A function to annotate a heatmap.
+
+    Adopted from the scikit-learn documentation:
+    https://matplotlib.org/stable/gallery/images_contours_and_fields/image_annotated_heatmap.html
+    """
+
+    if not isinstance(data, (list, np.ndarray)):
+        data = im.get_array()
+
+    # Normalize the threshold to the images color range.
+    if vrange is not None:
+        threshold = (vrange[1]-vrange[0])/2
+    else:
+        threshold = im.norm(data.max())/2
+
+    # Set default alignment to center, but allow it to be
+    # overwritten by textkw.
+    kw = dict(horizontalalignment="center",
+              verticalalignment="center")
+    kw.update(textkw)
+
+    # Get the formatter in case a string is supplied
+    if isinstance(valfmt, str):
+        valfmt = mpl.ticker.StrMethodFormatter(valfmt)
+
+    # Loop over the data and create a `Text` for each "pixel".
+    # Change the text's color depending on the data.
+    if textcolors is not None:
+        for i in range(data.shape[0]):
+            for j in range(data.shape[1]):
+                kw.update(color=textcolors[int(im.norm(data[i, j]) > threshold)])
+                im.axes.text(j, i, valfmt(data[i, j], None), **kw)
+
+
+def _create_annotated_heatmap(ax, data, title_prefix, cmap, annot_color, cbarlabel, cbar_kw=None, vmin=0, vmax=1):
+    """
+    Creates an annotated heatmap on the given axes.
+    """
+    im = _heatmap(data.values, data.index, data.columns,
+                        ax=ax, cbarlabel=cbarlabel,
+                        cmap=cmap, vmin=vmin, vmax=vmax, cbar_kw=cbar_kw)
+    _annotate_heatmap(im, valfmt="{x:.2f}", vrange=(vmin, vmax), textcolors=annot_color)
+    ax.set_title(title_prefix + cbarlabel)
+    ax.set_xlabel("B")
+    ax.set_ylabel("A", rotation=0)
+
+def posterior_maps(result, *, width, cmaps, annot_colors, axes=None):
+    """
+    Creates a figure with four subplots showing the posterior probabilities of the comparisons.
+    """
+    posterior_matrix_smaller_df = pd.DataFrame(np.nan, index=result.posterior_matrix.index, columns=result.posterior_matrix.columns)
+    posterior_matrix_equal_df = pd.DataFrame(np.nan, index=result.posterior_matrix.index, columns=result.posterior_matrix.columns)
+    posterior_matrix_larger_df = pd.DataFrame(np.nan, index=result.posterior_matrix.index, columns=result.posterior_matrix.columns)
+    posterior_matrix_decision_df = pd.DataFrame(np.nan, index=result.posterior_matrix.index, columns=result.posterior_matrix.columns)
+
+    for i in range(result.posterior_matrix.shape[0]):
+        for j in range(result.posterior_matrix.shape[1]):
+            if isinstance(result.posterior_matrix.iloc[i, j], tuple):
+                p_smaller, p_equal, p_larger = result.posterior_matrix.iloc[i, j]
+                posterior_matrix_smaller_df.iloc[i, j] = p_smaller
+                posterior_matrix_equal_df.iloc[i, j] = p_equal
+                posterior_matrix_larger_df.iloc[i, j] = p_larger
+                # this should be dropped, there is already a decision matrix
+                decision = 1
+                if result.decision_matrix.iloc[i, j]=='smaller':
+                    decision = 2
+                if result.decision_matrix.iloc[i, j]=='equal':
+                    decision = 3
+                if result.decision_matrix.iloc[i, j]=='larger':
+                    decision = 4
+                posterior_matrix_decision_df.iloc[i, j] = decision
+    
+    # drop first column and last row
+    posterior_matrix_smaller_df = posterior_matrix_smaller_df.drop(columns=posterior_matrix_smaller_df.columns[0])
+    posterior_matrix_smaller_df = posterior_matrix_smaller_df.drop(index=posterior_matrix_smaller_df.index[-1])
+    posterior_matrix_equal_df = posterior_matrix_equal_df.drop(columns=posterior_matrix_equal_df.columns[0])
+    posterior_matrix_equal_df = posterior_matrix_equal_df.drop(index=posterior_matrix_equal_df.index[-1])
+    posterior_matrix_larger_df = posterior_matrix_larger_df.drop(columns=posterior_matrix_larger_df.columns[0])
+    posterior_matrix_larger_df = posterior_matrix_larger_df.drop(index=posterior_matrix_larger_df.index[-1])
+    posterior_matrix_decision_df = posterior_matrix_decision_df.drop(columns=posterior_matrix_decision_df.columns[0])
+    posterior_matrix_decision_df = posterior_matrix_decision_df.drop(index=posterior_matrix_decision_df.index[-1])
+    
+    if axes is None:
+        fig = plt.figure(figsize=(width, width))
+        gs = mpl.gridspec.GridSpec(2, 2, figure=fig, height_ratios=[1, 1])
+        ax1 = fig.add_subplot(gs[0, 0])
+        ax2 = fig.add_subplot(gs[0, 1])
+        ax3 = fig.add_subplot(gs[1, 0])
+        ax4 = fig.add_subplot(gs[1, 1])
+        plt_created = True
+    else:
+        ax1 = axes[0]
+        ax2 = axes[1]
+        ax3 = axes[2]
+        ax4 = axes[3]
+
+    cmaps[3] = mpl.colormaps[cmaps[3]].resampled(4)
+    decisions = ['', 'Inconclusive', '$A < B$', '$A = B$', '$A > B$', '']
+    dec_fmt = mpl.ticker.FuncFormatter(lambda x, _: decisions[int(x)])
+
+    _create_annotated_heatmap(ax1, posterior_matrix_smaller_df,
+                              title_prefix="(a) ",
+                              cmap=cmaps[0], cbarlabel="$P(A < B)$",
+                              annot_color=annot_colors[0])
+    _create_annotated_heatmap(ax2, posterior_matrix_equal_df,
+                              title_prefix="(b) ",
+                              cmap=cmaps[1], cbarlabel="$P(A = B)$",
+                              annot_color=annot_colors[1])
+    _create_annotated_heatmap(ax3, posterior_matrix_larger_df,
+                              title_prefix="(c) ",
+                              cmap=cmaps[2], cbarlabel="$P(A > B)$",
+                              annot_color=annot_colors[2])
+    _create_annotated_heatmap(ax4, posterior_matrix_decision_df,
+                              title_prefix="(d) ",
+                              cmap=cmaps[3], cbarlabel="Decision",
+                              annot_color=None,
+                              cbar_kw=dict(ticks=[0, 1, 2, 3, 4, 5], format=dec_fmt),
+                              vmin=0.5, vmax=4.5)
+    if plt_created:
+        plt.tight_layout()

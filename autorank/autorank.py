@@ -14,7 +14,7 @@ from scipy import stats
 from io import StringIO
 from autorank._util import *
 
-__all__ = ['autorank', 'plot_stats', 'create_report', 'latex_table', 'latex_report']
+__all__ = ['autorank', 'plot_stats', 'plot_posterior_maps', 'create_report', 'latex_table', 'latex_report']
 
 if 'text.usetex' in plt.rcParams and plt.rcParams['text.usetex']:
     raise UserWarning("plot_stats may fail if the matplotlib setting plt.rcParams['text.usetex']==True.\n"
@@ -405,6 +405,66 @@ def plot_stats(result, *, allow_insignificant=False, ax=None, width=None):
     return ax
 
 
+def plot_posterior_maps(result, *, width=None, cmaps=None, annot_colors=None, axes=None, ):
+    """
+    Creates a posterior map plot for the results of the Bayesian signed rank test. The posterior map shows the
+    posterior probabilities of the pair-wise comparisons between the populations.
+    _(New in Version 1.3.0)_
+
+    # Parameters
+
+    result (RankResult):
+        Should be the return value the autorank function.
+
+    axes (list, default=None):
+        List of matplotlib axes to which the results are added. A new figure with a single axis is created if None.
+        If there are more than one axes, they are used to create multiple subplots.
+
+    width (float, default=None):
+        Specifies the width of the created plot is not None. By default, we use a width of 10. The height is
+        automatically set to the same value of width, since the maps should be square. This parameter is ignored if
+        axes is not None.
+
+    cmaps (list, default=['Blues', 'Oranges', 'Greys', 'Set3']):
+        Colormaps used for the posterior maps.
+
+    annot_colors (list, default=[("black", "white"), ("black", "white"), ("black", "white"), ("black", "white")]):
+        Colors used for the annotations in the posterior maps. The first color is used for less intensive backgrounds,
+        the second color for intensive backgrounds.
+    """
+
+    if not isinstance(result, RankResult):
+        raise TypeError("result must be of type RankResult and should be the outcome of calling the autorank function.")
+    if width is None:
+        width = 10
+    if not isinstance(width, int) and not isinstance(width, float):
+        raise TypeError("width must be a number or None")
+    if width <= 0:
+        raise ValueError("width must be positive")
+    if cmaps is None:
+        cmaps = ['Greens', 'Oranges', 'Greys', 'Set3']
+    if not isinstance(cmaps, list):
+        raise TypeError("cmaps must be a list of colormaps or None")
+    if len(cmaps) != 4:
+        raise ValueError("cmaps must have exactly 4 elements")
+    if annot_colors is None:
+        annot_colors = [("black", "white"), ("black", "white"), ("black", "white"), ("black", "white")]
+    if not isinstance(annot_colors, list):
+        raise TypeError("annot_colors must be a list of colors or None")
+    if len(annot_colors) != 4:
+        raise ValueError("annot_colors must have exactly 4 elements")
+    if axes is not None:
+        if not isinstance(axes, list):
+            raise TypeError("axes must be a list of matplotlib axes or None")
+        if len(axes) != 4:
+            raise ValueError("axes must have exactly 4 elements")
+
+    if result.omnibus != 'bayes':
+        raise ValueError("plot_posterior_maps can only be used with Bayesian analysis results.")
+    
+    posterior_maps(result, axes=axes, width=width, cmaps=cmaps, annot_colors=annot_colors)
+
+    
 def create_report(result, *, decimal_places=3):
     """
     Prints a report about the statistical analysis. 
