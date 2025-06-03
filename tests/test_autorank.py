@@ -964,7 +964,6 @@ class TestAutorank(unittest.TestCase):
         res = autorank(data, alpha=0.05, nsamples=100, verbose=False, approach='bayesian')
         plot_posterior_maps(res)
         plt.draw()
-        plt.show()
 
     def test_posterior_plots_invalid(self):
         self.assertRaises(TypeError, plot_posterior_maps,
