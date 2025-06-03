@@ -8,6 +8,7 @@ import sys
 
 import numpy as np
 import pandas as pd
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from scipy import stats
@@ -425,8 +426,9 @@ def plot_posterior_maps(result, *, width=None, cmaps=None, annot_colors=None, ax
         automatically set to the same value of width, since the maps should be square. This parameter is ignored if
         axes is not None.
 
-    cmaps (list, default=['Blues', 'Oranges', 'Greys', 'Set3']):
-        Colormaps used for the posterior maps.
+    cmaps (list, default=['Blues', 'Oranges', 'Greys', custom_cmap]):
+        Colormaps used for the posterior maps. The default custom_cmap is used for the decisions with four colors matching the
+        colors of the posterior maps (+ one color for inconclusive).
 
     annot_colors (list, default=[("black", "white"), ("black", "white"), ("black", "white"), ("black", "white")]):
         Colors used for the annotations in the posterior maps. The first color is used for less intensive backgrounds,
@@ -442,7 +444,11 @@ def plot_posterior_maps(result, *, width=None, cmaps=None, annot_colors=None, ax
     if width <= 0:
         raise ValueError("width must be positive")
     if cmaps is None:
-        cmaps = ['Greens', 'Oranges', 'Greys', 'Set3']
+        # Define the colors
+        colors = ['whitesmoke', 'mediumseagreen', 'lightgrey', 'orangered']
+        # Create the colormap
+        cmap = mpl.colors.ListedColormap(colors, name='custom_colormap')
+        cmaps = ['Greens', 'Oranges', 'Greys', cmap]
     if not isinstance(cmaps, list):
         raise TypeError("cmaps must be a list of colormaps or None")
     if len(cmaps) != 4:

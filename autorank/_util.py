@@ -771,7 +771,8 @@ def posterior_maps(result, *, width, cmaps, annot_colors, axes=None):
         ax3 = axes[2]
         ax4 = axes[3]
 
-    cmaps[3] = mpl.colormaps[cmaps[3]].resampled(4)
+    if not isinstance(cmaps[3], mpl.colors.ListedColormap) or cmaps[3].N != 4:
+        cmaps[3] = mpl.colormaps[cmaps[3]].resampled(4)
     decisions = ['', 'Inconclusive', '$A < B$', '$A = B$', '$A > B$', '']
     dec_fmt = mpl.ticker.FuncFormatter(lambda x, _: decisions[int(x)])
 
