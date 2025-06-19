@@ -743,13 +743,13 @@ def create_report(result, *, decimal_places=3):
                           "overlapping." % (notnormal_str))
             if result.pvalue >= result.alpha:
                 print("We failed to reject the null hypothesis (p=%.*f) of the repeated measures ANOVA that there is "
-                      "a difference between the mean values of the populations %s. Therefore, we "
+                      "no difference between the mean values of the populations %s. Therefore, we "
                       "assume that there is no statistically significant difference between the mean values of the "
                       "populations." % (decimal_places, result.pvalue,
                                         create_population_string(result.rankdf.index, with_stats=True)))
             else:
                 print("We reject the null hypothesis (p=%.*f) of the repeated measures ANOVA that there is "
-                      "a difference between the mean values of the populations %s. Therefore, we "
+                      "no difference between the mean values of the populations %s. Therefore, we "
                       "assume that there is a statistically significant difference between the mean values of the "
                       "populations." % (decimal_places, result.pvalue,
                                         create_population_string(result.rankdf.index, with_stats=True)))
