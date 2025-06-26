@@ -108,7 +108,7 @@ def _cohen_d(x, y):
 def _akinshin_gamma(x, y):
     """
     Calculate the effect size using a non-parametric variant of Cohen's d that replaces the pooled
-    standard deviation with the pooled median absolute devision. This metric is based on this blog
+    standard deviation with the pooled median absolute deviation. This metric is based on this blog
     post (no publication yet).
     https://aakinshin.net/posts/nonparametric-effect-size/
     """
