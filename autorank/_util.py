@@ -430,8 +430,6 @@ def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='mea
             rankdf.at[population, 'ci_upper'] = upper
         population_above = population
 
-    print(rankdf)
-
     return rankdf, effsize_method, reorder_pos
 
 
