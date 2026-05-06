@@ -396,7 +396,8 @@ def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='mea
     rankdf['meanrank'] = meanranks
 
     # need to know reordering here (see issue #7)
-    reorder_index = rankdf[order_column].sort_values(ascending=asc).index
+    reorder_asc = True if order_column == 'meanrank' else asc
+    reorder_index = rankdf[order_column].sort_values(ascending=reorder_asc).index
     reorder_pos = [reorder_index.get_loc(old_index) for old_index in rankdf.index]
     rankdf = rankdf.reindex(reorder_index)
 
