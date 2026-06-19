@@ -84,7 +84,7 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
         ANOVA+Tukey's HSD, or Friedman+Nemenyi). With 'bayesian', the Bayesian signed ranked test is used.
         _(New in Version 1.1.0)_
 
-    rope (float, default=0.01):
+    rope (float, default=0.1):
         Region of Practical Equivalence (ROPE) used for the bayesian analysis. The statistical analysis assumes that
         differences from the central tendency that are within the ROPE do not matter in practice. Therefore, such
         deviations may be considered to be equivalent. The ROPE is defined as an interval around the central tendency
