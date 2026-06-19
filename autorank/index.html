@@ -136,7 +136,7 @@ i.e., rows. The current version is only reliable for less than 5000 measurements
     With 'frequentist', a suitable frequentist statistical test is used (t-test, Wilcoxon signed rank test,
     ANOVA+Tukey's HSD, or Friedman+Nemenyi). With 'bayesian', the Bayesian signed ranked test is used.
     <em>(New in Version 1.1.0)</em></p>
-<p>rope (float, default=0.01):
+<p>rope (float, default=0.1):
     Region of Practical Equivalence (ROPE) used for the bayesian analysis. The statistical analysis assumes that
     differences from the central tendency that are within the ROPE do not matter in practice. Therefore, such
     deviations may be considered to be equivalent. The ROPE is defined as an interval around the central tendency
