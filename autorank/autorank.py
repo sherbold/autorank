@@ -27,8 +27,14 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
              nsamples=50000, effect_size=None, force_mode=None, random_state=None, plot_order=None):
     """
     Automatically compares populations defined in a block-design data frame. Each column in the data frame contains
-    the samples for one population. The data must not contain any NaNs. The data must have at least five measurements,
-    i.e., rows. The current version is only reliable for less than 5000 measurements.
+    the samples for one population. The data must have at least five measurements, i.e., rows. The current version is
+    only reliable for less than 5000 measurements.
+
+    For the frequentist approach, the data may contain missing values (NaNs). If any are detected, autorank
+    automatically uses the Skillings-Mack test (a generalization of the Friedman test that tolerates observations
+    missing at random) instead of Friedman as omnibus test. This selection is automatic and cannot be forced. The
+    Skillings-Mack test is an experimental feature (see autorank._utils_experimental) intended to be moved upstream.
+    The Bayesian approach does not support missing values.
 
     The following approach is implemented by this function.
 
@@ -61,6 +67,9 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
       ANOVA with Tukey's HSD as post-hoc test.
     - If there are more than two populations and at least one populations is not normal or the populations are
       heteroscedastic, we use Friedman's test with the Nemenyi post-hoc test.
+    - If the data contains missing values (NaNs), we use the Skillings-Mack test (a generalization of Friedman for
+      incomplete data) with the Nemenyi post-hoc test. The p-value is estimated with the assumption-free permutation
+      variant of the test.
 
     # Parameters
 
@@ -299,6 +308,33 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
 
     # Bonferoni correction for normality tests
     alpha_normality = alpha / len(data.columns)
+
+    # Explicit branch for incomplete data (i.e., data containing missing values / NaNs).
+    # The standard frequentist tests (and the homogeneity tests) cannot handle missing observations. If we detect any
+    # NaNs, we automatically branch to the Skillings-Mack test, a generalization of the Friedman test that tolerates
+    # observations missing at random. The selection is automatic and cannot be forced; complete data keeps using the
+    # existing code paths unchanged. The Skillings-Mack test is an experimental feature implemented in
+    # autorank._utils_experimental and is intended to be moved upstream (e.g., into scipy).
+    if approach == 'frequentist' and data.isnull().values.any():
+        if verbose:
+            print("Detected missing values (NaNs) in the data. Automatically using the Skillings-Mack test "
+                  "(experimental) instead of Friedman as omnibus test.")
+        # normality is informational only here and is assessed on the observed values of each population
+        all_normal = True
+        pvals_shapiro = []
+        for column in data.columns:
+            pval_shapiro = stats.shapiro(data[column].dropna()).pvalue
+            pvals_shapiro.append(pval_shapiro)
+            if pval_shapiro < alpha_normality:
+                all_normal = False
+        res = rank_multiple_nonparametric_incomplete(data, alpha, verbose, all_normal, order, effect_size, force_mode,
+                                                     random_state)
+        # need to reorder pvals here (see issue #7)
+        pvals_shapiro = [pvals_shapiro[pos] for pos in res.reorder_pos]
+        return RankResult(res.rankdf, res.pvalue, res.cd, res.omnibus, res.posthoc, all_normal, pvals_shapiro,
+                          None, None, None, alpha, alpha_normality, len(data), None, None,
+                          None, None, None, res.effect_size, force_mode, plot_order)
+
     all_normal, pvals_shapiro = test_normality(data, alpha_normality, verbose)
 
     # Select appropriate tests
@@ -614,6 +650,59 @@ def create_report(result, *, decimal_places=3):
                 print('The following pairs of populations are equal: %s.' % equal_pairs_str)
             if 'inconclusive' in set(result.rankdf['decision']):
                 print('All other differences are inconclusive.')
+    elif result.omnibus == 'skillings_mack':
+        if result.all_normal:
+            print("Because the data contains missing values, we use the Skillings-Mack test (a generalization of the "
+                  "Friedman test that tolerates observations missing at random) as omnibus test to determine if there "
+                  "are any significant differences between the mean values of the populations. We estimate the p-value "
+                  "with the assumption-free permutation variant of the test. We use the post-hoc Nemenyi test to infer "
+                  "which differences are significant. We report the mean value (M), the standard deviation (SD) and the "
+                  "mean rank (MR) among all populations over the samples. Differences between populations are "
+                  "significant, if the difference of the mean rank is greater than the critical distance CD=%.*f of the "
+                  "Nemenyi test." % (decimal_places, result.cd))
+        else:
+            if len(not_normal) == 1:
+                notnormal_str = 'one of them is'
+            else:
+                notnormal_str = 'some of them are'
+            print("Because the data contains missing values, we use the Skillings-Mack test (a generalization of the "
+                  "Friedman test that tolerates observations missing at random) as omnibus test to determine if there "
+                  "are any significant differences between the median values of the populations (%s not normal). We "
+                  "estimate the p-value with the assumption-free permutation variant of the test. We use the post-hoc "
+                  "Nemenyi test to infer which differences are significant. We report the median (MD), the median "
+                  "absolute deviation (MAD) and the mean rank (MR) among all populations over the samples. Differences "
+                  "between populations are significant, if the difference of the mean rank is greater than the critical "
+                  "distance CD=%.*f of the Nemenyi test." % (notnormal_str, decimal_places, result.cd))
+        if result.pvalue >= result.alpha:
+            print("We failed to reject the null hypothesis (p=%.*f) of the Skillings-Mack test that there is no "
+                  "difference in the central tendency of the populations %s. Therefore, we assume that there is no "
+                  "statistically significant difference between the central tendencies of the "
+                  "populations." % (decimal_places, result.pvalue,
+                                    create_population_string(result.rankdf.index, with_stats=True, with_rank=True)))
+        else:
+            print("We reject the null hypothesis (p=%.*f) of the Skillings-Mack test that there is no difference in the "
+                  "central tendency of the populations %s. Therefore, we assume that there is a statistically "
+                  "significant difference between the central tendencies of the "
+                  "populations." % (decimal_places, result.pvalue,
+                                    create_population_string(result.rankdf.index, with_stats=True, with_rank=True)))
+            meanranks, names, groups = get_sorted_rank_groups(result, False)
+            if len(groups) == 0:
+                print("Based on the post-hoc Nemenyi test, we assume that all differences between the populations "
+                      "are significant.")
+            else:
+                groupstrs = []
+                for group_range in groups:
+                    group = range(group_range[0], group_range[1] + 1)
+                    if len(group) == 1:
+                        cur_groupstr = names[group[0]]
+                    elif len(group) == 2:
+                        cur_groupstr = " and ".join([names[pop] for pop in group])
+                    else:
+                        cur_groupstr = ", ".join([names[pop] for pop in group[:-1]]) + ", and " + names[group[-1]]
+                    groupstrs.append(cur_groupstr)
+                print("Based on the post-hoc Nemenyi test, we assume that there are no significant differences "
+                      "within the following groups: %s. All other differences are "
+                      "significant." % ("; ".join(groupstrs)))
     elif len(result.rankdf) == 2:
         print("No check for homogeneity was required because we only have two populations.")
         if result.effect_size == 'cohen_d':

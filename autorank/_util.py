@@ -11,10 +11,11 @@ from statsmodels.stats.anova import AnovaRM
 from baycomp import SignedRankTest
 from collections import namedtuple
 
+from autorank._utils_experimental import skillings_mack
+
 __all__ = ['rank_two', 'rank_multiple_normal_homoscedastic', 'rank_bayesian', 'RankResult',
-           'rank_multiple_nonparametric', 'cd_diagram', 'get_sorted_rank_groups', 'ci_plot', 'test_normality', 'posterior_maps']
-
-
+           'rank_multiple_nonparametric', 'rank_multiple_nonparametric_incomplete', 'cd_diagram',
+           'get_sorted_rank_groups', 'ci_plot', 'test_normality', 'posterior_maps']
 class RankResult(namedtuple('RankResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc', 'all_normal',
                                            'pvals_shapiro', 'homoscedastic', 'pval_homogeneity', 'homogeneity_test',
                                            'alpha', 'alpha_normality', 'num_samples', 'sample_matrix',
@@ -78,8 +79,12 @@ class _BayesResult(namedtuple('BayesResult', ('rankdf', 'sample_matrix', 'poster
 
 def _pooled_std(x, y):
     """
-    Calculate the pooled standard deviation of x and y
+    Calculate the pooled standard deviation of x and y. Missing values (NaNs) are ignored.
     """
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    x = x[~np.isnan(x)]
+    y = y[~np.isnan(y)]
     nx = len(x)
     ny = len(y)
     dof = nx + ny - 2
@@ -88,8 +93,12 @@ def _pooled_std(x, y):
 
 def _pooled_mad(x, y):
     """
-    Calculate the pooled median absolute deviation of x and y
+    Calculate the pooled median absolute deviation of x and y. Missing values (NaNs) are ignored.
     """
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    x = x[~np.isnan(x)]
+    y = y[~np.isnan(y)]
     nx = len(x)
     ny = len(y)
     dof = nx + ny - 2
@@ -100,25 +109,29 @@ def _pooled_mad(x, y):
 
 def _cohen_d(x, y):
     """
-    Calculate the effect size using Cohen's d
+    Calculate the effect size using Cohen's d. Missing values (NaNs) are ignored.
     """
-    return (np.mean(x) - np.mean(y)) / _pooled_std(x, y)
+    return (np.nanmean(x) - np.nanmean(y)) / _pooled_std(x, y)
 
 
 def _akinshin_gamma(x, y):
     """
     Calculate the effect size using a non-parametric variant of Cohen's d that replaces the pooled
     standard deviation with the pooled median absolute deviation. This metric is based on this blog
-    post (no publication yet).
+    post (no publication yet). Missing values (NaNs) are ignored.
     https://aakinshin.net/posts/nonparametric-effect-size/
     """
-    return (np.median(x) - np.median(y)) / _pooled_mad(x, y)
+    return (np.nanmedian(x) - np.nanmedian(y)) / _pooled_mad(x, y)
 
 
 def _cliffs_delta(x, y):
     """
-    Calculates Cliff's delta.
+    Calculates Cliff's delta. Missing values (NaNs) are ignored.
     """
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    x = x[~np.isnan(x)]
+    y = y[~np.isnan(y)]
     delta = 0
     for x_val in x:
         result = 0
@@ -174,8 +187,9 @@ def _critical_distance(alpha, k, n):
 
 def _confidence_interval(data, alpha, is_normal=True):
     """
-    Determines the confidence interval.
+    Determines the confidence interval. Missing values (NaNs) are ignored.
     """
+    data = data.dropna()
     if is_normal:
         mean = data.mean()
         ci_range = data.sem() * stats.t.ppf((1 + 1 - alpha) / 2, len(data) - 1)
@@ -305,6 +319,38 @@ def rank_multiple_nonparametric(data, alpha, verbose, all_normal, order, effect_
     return _ComparisonResult(rankdf, pval, cd, 'friedman', 'nemenyi', effsize_method, reorder_pos)
 
 
+def rank_multiple_nonparametric_incomplete(data, alpha, verbose, all_normal, order, effect_size, force_mode,
+                                           random_state=None):
+    """
+    Analyzes incomplete data (i.e., data with missing values / NaNs) following Demsar, but replaces the Friedman
+    omnibus test with the Skillings-Mack test. The Skillings-Mack test is a generalization of the Friedman test that
+    tolerates observations missing at random and reduces to the Friedman test for complete data without ties.
+
+    By default the permutation (Monte-Carlo) variant of the Skillings-Mack test is used to estimate the p-value. The
+    permutation test makes no distributional assumptions and is preferred over the asymptotic chi-squared approximation
+    for designs with missing values and/or ties.
+
+    The Skillings-Mack test is implemented in ``autorank._utils_experimental`` and is an experimental feature that is
+    intended to be moved upstream (e.g., into scipy).
+    """
+    if verbose:
+        print("Using the Skillings-Mack test as omnibus test (Friedman generalization for incomplete data)")
+    pval = skillings_mack(*data.transpose().values, simulate_p_value=True, random_state=random_state).sim_pvalue
+    if verbose:
+        if pval >= alpha:
+            print("Fail to reject null hypothesis that there is no difference between the distributions (p=%f)" % pval)
+        else:
+            print("Rejecting null hypothesis that there is no difference between the distributions (p=%f)" % pval)
+            print(
+                "Using Nemenyi post-hoc test.",
+                "Differences are significant,"
+                "if the distance between the mean ranks is greater than the critical distance.")
+    cd = _critical_distance(alpha, k=len(data.columns), n=len(data))
+    rankdf, effsize_method, reorder_pos = _create_result_df_skeleton(data, alpha, all_normal, order,
+                                                                     effect_size=effect_size, force_mode=force_mode)
+    return _ComparisonResult(rankdf, pval, cd, 'skillings_mack', 'nemenyi', effsize_method, reorder_pos)
+
+
 def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples, effect_size, random_state, force_mode):
     # TODO check if some outputs for the verbose mode would be helpful
     if (force_mode is not None and force_mode == 'parametric') or (force_mode is None and all_normal):
@@ -392,7 +438,7 @@ def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='mea
                               columns=['meanrank', 'median', 'mad', 'ci_lower', 'ci_upper', 'effect_size', 'magnitude', 'effect_size_above', 'magnitude_above'])
         rankdf['median'] = data.median().reindex(meanranks.index)
         for population in rankdf.index:
-            rankdf.at[population, 'mad'] = stats.median_abs_deviation(data.loc[:, population])
+            rankdf.at[population, 'mad'] = stats.median_abs_deviation(data.loc[:, population], nan_policy='omit')
     rankdf['meanrank'] = meanranks
 
     # need to know reordering here (see issue #7)

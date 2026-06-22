@@ -5,7 +5,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from autorank import *
-from autorank._util import RankResult
+from autorank._util import RankResult, rank_multiple_nonparametric, rank_multiple_nonparametric_incomplete
+from autorank._utils_experimental import skillings_mack
 
 pd.set_option('display.max_columns', 20)
 
@@ -528,6 +529,68 @@ class TestAutorank(unittest.TestCase):
         create_report(res)
         res = autorank(data, 0.05, self.verbose, force_mode='nonparametric', approach='bayesian')
         create_report(res)
+
+    def test_autorank_incomplete_data_skillings_mack(self):
+        # Data with missing values (NaNs) must automatically branch to the Skillings-Mack test.
+        std = 0.3
+        means = [0.2, 0.3, 0.5, 0.8, 0.85, 0.9, 0.1]
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
+        # introduce missing values at random while keeping at least two observations per row
+        data.iloc[0, 1] = np.nan
+        data.iloc[3, 4] = np.nan
+        data.iloc[7, 0] = np.nan
+        data.iloc[7, 2] = np.nan
+        res = autorank(data, 0.05, self.verbose, random_state=42)
+        # incomplete data automatically uses the Skillings-Mack test with the Nemenyi post-hoc test
+        self.assertEqual(res.omnibus, 'skillings_mack')
+        self.assertEqual(res.posthoc, 'nemenyi')
+        self.assertIsNone(res.homoscedastic)
+        self.assertIsNone(res.pval_homogeneity)
+        self.assertTrue(0.0 <= res.pvalue <= 1.0)
+        # the descriptive statistics and effect sizes must remain valid despite the missing values, i.e.,
+        # they must not become NaN and the magnitude must not spuriously default to 'large' (see issue with
+        # NaN-propagating effect-size/MAD computations)
+        self.assertFalse(res.rankdf['median'].isnull().any())
+        self.assertFalse(res.rankdf['mad'].isnull().any())
+        self.assertFalse(res.rankdf['ci_lower'].isnull().any())
+        self.assertFalse(res.rankdf['ci_upper'].isnull().any())
+        self.assertFalse(res.rankdf['effect_size'].isnull().any())
+        self.assertFalse(res.rankdf['effect_size_above'].isnull().any())
+        self.assertTrue(set(res.rankdf['magnitude']).issubset(
+            {'negligible', 'small', 'medium', 'large'}))
+        create_report(res)
+        # permutation p-value is reproducible for a fixed random_state
+        res2 = autorank(data, 0.05, False, random_state=42)
+        self.assertEqual(res.pvalue, res2.pvalue)
+
+    def test_autorank_skillings_mack_equivalent_to_friedman_complete(self):
+        # On complete, tie-free data, the Skillings-Mack branch must agree with the Friedman branch.
+        # We explicitly call both ranking functions on the same data.
+        std = 0.3
+        means = [0.2, 0.3, 0.5, 0.8, 0.85, 0.9, 0.1]
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size).clip(0, 1)
+        all_normal = False  # use the non-parametric path for both branches
+        res_friedman = rank_multiple_nonparametric(data, 0.05, self.verbose, all_normal, 'descending', None, None)
+        res_sm = rank_multiple_nonparametric_incomplete(data, 0.05, self.verbose, all_normal, 'descending', None,
+                                                        None, random_state=42)
+        # the ranking, descriptive statistics and effect sizes are computed identically by both branches
+        pd.testing.assert_frame_equal(res_friedman.rankdf, res_sm.rankdf)
+        self.assertEqual(res_friedman.omnibus, 'friedman')
+        self.assertEqual(res_sm.omnibus, 'skillings_mack')
+        self.assertEqual(res_friedman.posthoc, res_sm.posthoc)
+        self.assertAlmostEqual(res_friedman.cd, res_sm.cd)
+        self.assertEqual(res_friedman.reorder_pos, res_sm.reorder_pos)
+        # the Skillings-Mack statistic reduces to Friedman for complete tie-free data, so the asymptotic
+        # p-values match exactly
+        sm_asymptotic = skillings_mack(*data.transpose().values).pvalue
+        self.assertAlmostEqual(res_friedman.pvalue, sm_asymptotic, places=9)
+        # the assumption-free permutation p-value used by the branch is close to (here: as significant as)
+        # the Friedman p-value
+        self.assertAlmostEqual(res_friedman.pvalue, res_sm.pvalue, places=2)
 
     def test_autorank_invalid(self):
         self.assertRaises(TypeError, autorank,
