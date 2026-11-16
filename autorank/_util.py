@@ -8,18 +8,20 @@ from scipy import stats
 from statsmodels.stats.libqsturng import qsturng
 from statsmodels.stats.multicomp import MultiComparison
 from statsmodels.stats.anova import AnovaRM
+from statsmodels.stats.multitest import multipletests
 from baycomp import SignedRankTest
 from collections import namedtuple
 
 __all__ = ['rank_two', 'rank_multiple_normal_homoscedastic', 'rank_bayesian', 'RankResult',
-           'rank_multiple_nonparametric', 'cd_diagram', 'get_sorted_rank_groups', 'ci_plot', 'test_normality', 'posterior_maps']
+           'rank_multiple_nonparametric', 'rank_multiple_wilcoxon_holm', 'cd_diagram', 'get_sorted_rank_groups', 'ci_plot', 'test_normality', 'posterior_maps']
 
 
 class RankResult(namedtuple('RankResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc', 'all_normal',
                                            'pvals_shapiro', 'homoscedastic', 'pval_homogeneity', 'homogeneity_test',
                                            'alpha', 'alpha_normality', 'num_samples', 'sample_matrix',
                                            'posterior_matrix', 'decision_matrix', 'rope', 'rope_mode', 'effect_size',
-                                           'force_mode', 'plot_order'))):
+                                           'force_mode', 'plot_order', 'pairwise'),
+                            defaults=(None,))):
     __slots__ = ()
 
     def __str__(self):
@@ -41,15 +43,17 @@ class RankResult(namedtuple('RankResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 
                'rope=%s\n' \
                'rope_mode=%s\n' \
                'effect_size=%s\n'\
-               'force_mode=%s)' % (self.rankdf, self.pvalue, self.cd, self.omnibus, self.posthoc, self.all_normal,
+               'force_mode=%s\n' \
+               'pairwise=\n%s)' % (self.rankdf, self.pvalue, self.cd, self.omnibus, self.posthoc, self.all_normal,
                                 self.pvals_shapiro, self.homoscedastic, self.pval_homogeneity,
                                 self.homogeneity_test, self.alpha, self.alpha_normality, self.num_samples,
                                 self.posterior_matrix, self.decision_matrix, self.rope, self.rope_mode,
-                                self.effect_size, self.force_mode)
+                                self.effect_size, self.force_mode, self.pairwise)
 
 
 class _ComparisonResult(namedtuple('ComparisonResult', ('rankdf', 'pvalue', 'cd', 'omnibus', 'posthoc',
-                                                        'effect_size', 'reorder_pos'))):
+                                                        'effect_size', 'reorder_pos', 'pairwise'),
+                                   defaults=(None,))):
     __slots__ = ()
 
     def __str__(self):
@@ -305,6 +309,52 @@ def rank_multiple_nonparametric(data, alpha, verbose, all_normal, order, effect_
     return _ComparisonResult(rankdf, pval, cd, 'friedman', 'nemenyi', effsize_method, reorder_pos)
 
 
+def _pairwise_wilcoxon_holm(data, populations, alpha):
+    """
+    Pair-wise Wilcoxon signed rank tests between all populations with Holm correction for the family-wise error.
+
+    Returns a data frame with one row per unordered pair (in the order of the populations) and the columns
+    population_a, population_b, pvalue, pvalue_holm, and significant.
+    """
+    pairs = [(populations[i], populations[j])
+             for i in range(len(populations)) for j in range(i + 1, len(populations))]
+    pvals = []
+    for pop_a, pop_b in pairs:
+        try:
+            pval = stats.wilcoxon(data.loc[:, pop_a], data.loc[:, pop_b]).pvalue
+        except ValueError:
+            # raised by some scipy versions if all differences are zero
+            pval = 1.0
+        pvals.append(1.0 if not np.isfinite(pval) else float(pval))
+    reject, pvals_holm, _, _ = multipletests(pvals, alpha=alpha, method='holm')
+    return pd.DataFrame({'population_a': [pop_a for pop_a, _ in pairs],
+                         'population_b': [pop_b for _, pop_b in pairs],
+                         'pvalue': pvals,
+                         'pvalue_holm': [float(p) for p in pvals_holm],
+                         'significant': [bool(r) for r in reject]})
+
+
+def rank_multiple_wilcoxon_holm(data, alpha, verbose, all_normal, order, effect_size, force_mode):
+    """
+    Analyzes data using the Friedman test as omnibus test and pair-wise Wilcoxon signed rank tests with Holm
+    correction as post-hoc test (Benavoli et al., 2016).
+    """
+    if verbose:
+        print("Using Friedman test as omnibus test")
+    pval = stats.friedmanchisquare(*data.transpose().values).pvalue
+    if verbose:
+        if pval >= alpha:
+            print("Fail to reject null hypothesis that there is no difference between the distributions (p=%f)" % pval)
+        else:
+            print("Rejecting null hypothesis that there is no difference between the distributions (p=%f)" % pval)
+            print("Using pair-wise Wilcoxon signed rank tests with Holm correction as post-hoc test.",
+                  "Differences are significant if the Holm-adjusted p-value is less than alpha.")
+    rankdf, effsize_method, reorder_pos = _create_result_df_skeleton(data, alpha, all_normal, order,
+                                                                     effect_size=effect_size, force_mode=force_mode)
+    pairwise = _pairwise_wilcoxon_holm(data, rankdf.index.to_list(), alpha)
+    return _ComparisonResult(rankdf, pval, None, 'friedman', 'wilcoxon_holm', effsize_method, reorder_pos, pairwise)
+
+
 def rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples, effect_size, random_state, force_mode):
     # TODO check if some outputs for the verbose mode would be helpful
     if (force_mode is not None and force_mode == 'parametric') or (force_mode is None and all_normal):
@@ -433,7 +483,35 @@ def _create_result_df_skeleton(data, alpha, all_normal, order, order_column='mea
     return rankdf, effsize_method, reorder_pos
 
 
+def _wilcoxon_holm_rank_groups(result, reverse):
+    """
+    Groups of populations without significant differences for the Wilcoxon-Holm post-hoc test. A group is a maximal
+    run of populations that are consecutive with respect to their mean ranks, such that no pair within the run is
+    significantly different.
+    """
+    rankdf = result.rankdf.iloc[::-1] if reverse else result.rankdf
+    names = rankdf.index.to_list()
+    sorted_ranks = rankdf.meanrank
+    significant = {frozenset((pop_a, pop_b)) for pop_a, pop_b, sig in
+                   zip(result.pairwise['population_a'], result.pairwise['population_b'],
+                       result.pairwise['significant']) if sig}
+    groups = []
+    cur_max_j = -1
+    for i in range(len(names)):
+        max_j = None
+        for j in range(i + 1, len(names)):
+            if any(frozenset((names[k], names[j])) in significant for k in range(i, j)):
+                break
+            max_j = j
+        if max_j is not None and max_j > cur_max_j:
+            cur_max_j = max_j
+            groups.append((i, max_j))
+    return sorted_ranks, names, groups
+
+
 def get_sorted_rank_groups(result, reverse):
+    if result.posthoc == 'wilcoxon_holm':
+        return _wilcoxon_holm_rank_groups(result, reverse)
     if reverse:
         names = result.rankdf.iloc[::-1].index.to_list()
         if result.cd is not None:
@@ -550,21 +628,22 @@ def cd_diagram(result, reverse, ax, width):
         plot_text(textspace + scalewidth + 0.2, chei, names[i],
                   ha="left", va="center")
 
-    # upper scale
-    if not reverse:
-        begin, end = rankpos(lowv), rankpos(lowv + cd)
-    else:
-        begin, end = rankpos(highv), rankpos(highv - cd)
+    # upper scale (only for post-hoc tests with a critical distance, i.e., Nemenyi)
+    if cd is not None:
+        if not reverse:
+            begin, end = rankpos(lowv), rankpos(lowv + cd)
+        else:
+            begin, end = rankpos(highv), rankpos(highv - cd)
 
-    plot_line([(begin, distanceh), (end, distanceh)], linewidth=0.7)
-    plot_line([(begin, distanceh + bigtick / 2),
-               (begin, distanceh - bigtick / 2)],
-              linewidth=0.7)
-    plot_line([(end, distanceh + bigtick / 2),
-               (end, distanceh - bigtick / 2)],
-              linewidth=0.7)
-    plot_text((begin + end) / 2, distanceh - 0.05, "CD",
-              ha="center", va="bottom")
+        plot_line([(begin, distanceh), (end, distanceh)], linewidth=0.7)
+        plot_line([(begin, distanceh + bigtick / 2),
+                   (begin, distanceh - bigtick / 2)],
+                  linewidth=0.7)
+        plot_line([(end, distanceh + bigtick / 2),
+                   (end, distanceh - bigtick / 2)],
+                  linewidth=0.7)
+        plot_text((begin + end) / 2, distanceh - 0.05, "CD",
+                  ha="center", va="bottom")
 
     # no-significance lines
     side = 0.05

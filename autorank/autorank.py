@@ -24,7 +24,8 @@ if 'text.usetex' in plt.rcParams and plt.rcParams['text.usetex']:
 
 
 def autorank(data, alpha=0.05, verbose=False, order='descending', approach='frequentist', rope=0.1, rope_mode='effsize',
-             nsamples=50000, effect_size=None, force_mode=None, random_state=None, plot_order=None):
+             nsamples=50000, effect_size=None, force_mode=None, random_state=None, plot_order=None,
+             posthoc=None):
     """
     Automatically compares populations defined in a block-design data frame. Each column in the data frame contains
     the samples for one population. The data must not contain any NaNs. The data must have at least five measurements,
@@ -52,7 +53,7 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
     - The confidence interval for the median.
     - The effect size in comparison to the highest ranking approach using Cliff's delta.
 
-    For the statistical tests, there are five variants:
+    For the statistical tests, there are five variants (plus an optional post-hoc test, see the posthoc parameter):
 
     - If approach=='bayesian' we use a Bayesian signed rank test.
     - If there are two populations (columns) and both populations are normal, we use the paired t-test.
@@ -124,6 +125,17 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
         List with the order of the populations used for plotting, where reasonable (e.g., CI plots). If this is not none, this overrides the order parameter for visualizations.
         _(New in Version 1.3.0)_
 
+    posthoc (string, default=None):
+        Post-hoc test for frequentist analyses of more than two populations. If None, the post-hoc test is selected
+        automatically as described in the flow chart (Tukey HSD after repeated measures ANOVA, Nemenyi after the
+        Friedman test). With 'wilcoxon_holm', the Friedman test is used as omnibus test, regardless of normality and
+        homoscedasticity, followed by pair-wise Wilcoxon signed rank tests with Holm correction of the family-wise
+        error (Benavoli et al., 2016, "Should we really use post-hoc tests based on mean-ranks?", JMLR 17(5)). Unlike
+        Nemenyi, the decision for a pair of populations does not depend on the other populations in the comparison.
+        Central tendency, variability, and effect sizes are still selected based on normality (or force_mode). Cannot
+        be combined with force_mode='parametric'. Ignored for two populations and Bayesian statistics.
+        _(New in Version 1.3.0)_
+
     # Returns
 
     A named tuple of type RankResult with the following entries.
@@ -145,6 +157,12 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
 
     cd (float):
         The critical distance of the Nemenyi posthoc test, if it was used. Otherwise None.
+
+    pairwise (DataFrame):
+        Results of the pair-wise post-hoc tests if posthoc='wilcoxon_holm' was used, otherwise None. One row per
+        unordered pair of populations with the columns population_a, population_b, pvalue (raw p-value of Wilcoxon's
+        signed rank test), pvalue_holm (Holm-adjusted p-value), and significant (pvalue_holm < alpha).
+        _(New in Version 1.3.0)_
 
     all_normal (bool):
         True if all populations are normal, false if at least one is not normal.
@@ -273,6 +291,15 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
     if force_mode is not None and approach=='frequentist':
         print("Tests for normality and homoscedacity are ignored for test selection, forcing %s tests" % force_mode)
 
+    if posthoc is not None:
+        if not isinstance(posthoc, str):
+            raise TypeError("posthoc must be None or a string")
+        if posthoc not in ['wilcoxon_holm']:
+            raise ValueError("posthoc must be None or 'wilcoxon_holm'")
+        if force_mode == 'parametric':
+            raise ValueError("posthoc='wilcoxon_holm' uses the non-parametric Friedman test and cannot be combined "
+                             "with force_mode='parametric'")
+
     if plot_order is not None:
         if not isinstance(plot_order, list):
             raise TypeError("plot_order must be a list")
@@ -324,6 +351,8 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
 
         if len(data.columns) == 2:
             res = rank_two(data, alpha, verbose, all_normal, order, effect_size, force_mode)
+        elif posthoc == 'wilcoxon_holm':
+            res = rank_multiple_wilcoxon_holm(data, alpha, verbose, all_normal, order, effect_size, force_mode)
         else:
             if (force_mode is not None and force_mode=='parametric') or \
                (force_mode is None and all_normal and var_equal):
@@ -334,7 +363,7 @@ def autorank(data, alpha=0.05, verbose=False, order='descending', approach='freq
         pvals_shapiro = [pvals_shapiro[pos] for pos in res.reorder_pos]
         return RankResult(res.rankdf, res.pvalue, res.cd, res.omnibus, res.posthoc, all_normal, pvals_shapiro,
                           var_equal, pval_homogeneity, homogeneity_test, alpha, alpha_normality, len(data), None, None,
-                          None, None, None, res.effect_size, force_mode, plot_order)
+                          None, None, None, res.effect_size, force_mode, plot_order, res.pairwise)
     elif approach == 'bayesian':
         res = rank_bayesian(data, alpha, verbose, all_normal, order, rope, rope_mode, nsamples, effect_size, random_state, force_mode)
         # need to reorder pvals here (see issue #7)
@@ -355,6 +384,8 @@ def plot_stats(result, *, allow_insignificant=False, ax=None, width=None):
      such that the family wise significance is alpha.
     - Creates Critical Distance (CD) diagrams for the Nemenyi post-hoc test. CD diagrams visualize the mean ranks of
      populations. Populations that are not significantly different are connected by a horizontal bar.
+    - Creates CD diagrams without the critical distance scale for the Wilcoxon-Holm post-hoc test. Populations that
+     are consecutive in their mean ranks and pair-wise not significantly different are connected by a horizontal bar.
 
     This function raises a ValueError if the omnibus test did not detect a significant difference. The allow_significant
     parameter allows the suppression of this exception and forces the creation of the plots.
@@ -401,7 +432,7 @@ def plot_stats(result, *, allow_insignificant=False, ax=None, width=None):
         warnings.warn('No plot to visualize statistics for Wilcoxon test available. Doing nothing.')
     elif result.posthoc == 'tukeyhsd':
         ax = ci_plot(result, True, ax, width)
-    elif result.posthoc == 'nemenyi':
+    elif result.posthoc in ('nemenyi', 'wilcoxon_holm'):
         ax = cd_diagram(result, True, ax, width)
     return ax
 
@@ -772,7 +803,25 @@ def create_report(result, *, decimal_places=3):
                           "the following groups: %s. All other differences are significant." % ("; ".join(groupstrs)))
                 print()
         elif result.omnibus == 'friedman':
-            if result.all_normal and result.homoscedastic:
+            posthoc_name = 'Nemenyi test'
+            if result.posthoc == 'wilcoxon_holm':
+                posthoc_name = 'pair-wise Wilcoxon signed rank tests with Holm correction'
+                if (result.force_mode is not None and result.force_mode == 'parametric') or \
+                        (result.force_mode is None and result.all_normal):
+                    central_str = 'mean values'
+                    stats_str = 'the mean value (M), the standard deviation (SD)'
+                else:
+                    central_str = 'median values'
+                    stats_str = 'the median (MD), the median absolute deviation (MAD)'
+                print("Because we have more than two populations and the user selected the Wilcoxon-Holm post-hoc "
+                      "procedure, we use the non-parametric Friedman test as omnibus test to determine if there are "
+                      "any significant differences between the %s of the populations. We use %s as post-hoc test to "
+                      "infer which differences are significant, such that the family-wise significance level is "
+                      "alpha=%.*f. We report %s and the mean rank (MR) among all populations over the samples. "
+                      "Differences between populations are significant, if the Holm-adjusted p-value of the "
+                      "Wilcoxon signed rank test is less than alpha."
+                      % (central_str, posthoc_name, decimal_places, result.alpha, stats_str))
+            elif result.all_normal and result.homoscedastic:
                 print("Because we have more than two populations and all populations are normal and homoscedastic, we "
                       "should use repeated measures ANOVA as omnibus "
                       "test to determine if there are any significant differences between the mean values of the "
@@ -818,8 +867,8 @@ def create_report(result, *, decimal_places=3):
                                         create_population_string(result.rankdf.index, with_stats=True, with_rank=True)))
                 meanranks, names, groups = get_sorted_rank_groups(result, False)
                 if len(groups) == 0:
-                    print("Based on the post-hoc Nemenyi test, we assume that all differences between the populations "
-                          "are significant.")
+                    print("Based on the post-hoc %s, we assume that all differences between the populations "
+                          "are significant." % posthoc_name)
                 else:
                     groupstrs = []
                     for group_range in groups:
@@ -831,9 +880,9 @@ def create_report(result, *, decimal_places=3):
                         else:
                             cur_groupstr = ", ".join([names[pop] for pop in group[:-1]]) + ", and " + names[group[-1]]
                         groupstrs.append(cur_groupstr)
-                    print("Based on the post-hoc Nemenyi test, we assume that there are no significant differences "
+                    print("Based on the post-hoc %s, we assume that there are no significant differences "
                           "within the following groups: %s. All other differences are "
-                          "significant." % ("; ".join(groupstrs)))
+                          "significant." % (posthoc_name, "; ".join(groupstrs)))
         else:
             raise ValueError('Unknown omnibus test for difference in the central tendency: %s' % result.omnibus)
 
@@ -1050,6 +1099,9 @@ def latex_report(result, *, decimal_places=3, prefix="", generate_plots=True, fi
         if result.posthoc == 'nemenyi':
             print(r"\caption{CD diagram to visualize the results of the Nemenyi post-hoc test. The horizontal lines "
                   r"indicate that differences are not significant.}")
+        elif result.posthoc == 'wilcoxon_holm':
+            print(r"\caption{CD diagram to visualize the results of the pair-wise Wilcoxon signed rank tests with Holm "
+                  r"correction. The horizontal lines indicate that differences are not significant.}")
         elif result.posthoc == 'TukeyHSD' or result.posthoc == 'ttest':
             print(r"\caption{Confidence intervals and mean values of the populations.}")
         else:

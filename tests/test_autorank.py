@@ -5,7 +5,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from autorank import *
-from autorank._util import RankResult
+from autorank._util import RankResult, get_sorted_rank_groups
+from scipy import stats
+from statsmodels.stats.multitest import multipletests
 
 pd.set_option('display.max_columns', 20)
 
@@ -990,3 +992,72 @@ class TestAutorank(unittest.TestCase):
                           result=res, axes='foo')
         self.assertRaises(ValueError, plot_posterior_maps,
                           result=res, axes=['foo'])
+
+    def test_wilcoxon_holm(self):
+        # normal and homoscedastic data would select ANOVA+Tukey HSD by default
+        std = 0.2
+        means = [0.2, 0.3, 0.5, 0.55, 0.6, 0.6, 0.9]
+        data = pd.DataFrame()
+        for i, mean in enumerate(means):
+            data['pop_%i' % i] = np.random.normal(mean, std, self.sample_size)
+        res = autorank(data, 0.05, self.verbose, posthoc='wilcoxon_holm')
+        self.assertTrue(res.all_normal)
+        self.assertEqual(res.omnibus, 'friedman')
+        self.assertEqual(res.posthoc, 'wilcoxon_holm')
+        self.assertIsNone(res.cd)
+        self.assertTrue(res.pvalue < res.alpha)
+        self.assertAlmostEqual(res.pvalue, stats.friedmanchisquare(*data.transpose().values).pvalue)
+        # pair-wise results agree with scipy + statsmodels
+        k = len(means)
+        self.assertEqual(len(res.pairwise), k * (k - 1) // 2)
+        pvals = [stats.wilcoxon(data[a], data[b]).pvalue
+                 for a, b in zip(res.pairwise['population_a'], res.pairwise['population_b'])]
+        reject, pvals_holm, _, _ = multipletests(pvals, alpha=0.05, method='holm')
+        np.testing.assert_allclose(res.pairwise['pvalue'], pvals)
+        np.testing.assert_allclose(res.pairwise['pvalue_holm'], pvals_holm)
+        self.assertEqual(res.pairwise['significant'].tolist(), reject.tolist())
+        ax = plot_stats(res)
+        self.assertNotIn('CD', [text.get_text() for text in ax.texts])
+        plt.draw()
+        create_report(res)
+        print("----BEGIN LATEX----")
+        latex_report(res, generate_plots=True, figure_path=self.tmp_dir.name)
+        print("----END LATEX----")
+        res = autorank(data, 0.05, self.verbose, posthoc='wilcoxon_holm', order='ascending')
+        self.assertEqual(res.posthoc, 'wilcoxon_holm')
+        plot_stats(res)
+        plt.draw()
+
+    def test_wilcoxon_holm_groups(self):
+        # pop_0 ~ pop_1 and pop_3 ~ pop_4 (tiny shifts), all other pairs are clearly different
+        base = np.random.normal(0, 1, self.sample_size)
+        shifts = [0.0, 0.001, 0.5, 1.0, 1.001]
+        data = pd.DataFrame()
+        for i, shift in enumerate(shifts):
+            data['pop_%i' % i] = base + shift + np.random.normal(0, 0.05, self.sample_size)
+        res = autorank(data, 0.05, self.verbose, posthoc='wilcoxon_holm', order='ascending')
+        _, names, groups = get_sorted_rank_groups(res, False)
+        group_sets = [set(names[l:r + 1]) for l, r in groups]
+        self.assertEqual(group_sets, [{'pop_0', 'pop_1'}, {'pop_3', 'pop_4'}])
+        _, names, groups = get_sorted_rank_groups(res, True)
+        self.assertEqual([set(names[l:r + 1]) for l, r in groups], [{'pop_3', 'pop_4'}, {'pop_0', 'pop_1'}])
+        ax = plot_stats(res)
+        plt.draw()
+        create_report(res)
+
+    def test_wilcoxon_holm_two_and_bayes(self):
+        data = pd.DataFrame({'pop_0': np.random.normal(0.3, 0.1, self.sample_size),
+                             'pop_1': np.random.normal(0.6, 0.1, self.sample_size)})
+        res = autorank(data, 0.05, self.verbose, posthoc='wilcoxon_holm')
+        self.assertEqual(res.omnibus, 'ttest')
+        self.assertIsNone(res.pairwise)
+        data['pop_2'] = np.random.normal(0.9, 0.1, self.sample_size)
+        res = autorank(data, 0.05, self.verbose, posthoc='wilcoxon_holm', approach='bayesian', nsamples=100)
+        self.assertEqual(res.omnibus, 'bayes')
+        self.assertIsNone(res.pairwise)
+
+    def test_wilcoxon_holm_invalid(self):
+        data = pd.DataFrame(np.random.normal(0, 1, (10, 3)), columns=['a', 'b', 'c'])
+        self.assertRaises(TypeError, autorank, data=data, posthoc=1)
+        self.assertRaises(ValueError, autorank, data=data, posthoc='foo')
+        self.assertRaises(ValueError, autorank, data=data, posthoc='wilcoxon_holm', force_mode='parametric')
